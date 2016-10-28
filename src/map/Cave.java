@@ -163,7 +163,7 @@ public class Cave extends JPanel {
 				}
 				
 				if(i == samusZone.getI() && j == samusZone.getJ()) {
-					
+					//System.out.println(i + " : " + j);
 					switch(samusZone.getSamus().getDirection()) {
 					
 						case 1:
