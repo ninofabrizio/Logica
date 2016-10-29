@@ -10,11 +10,14 @@ public class Samus {
 	// UP == 1 | DOWN == 2 | LEFT == 3 | RIGHT == 4
 	private int direction;
 	
+	private int ammoLeft;
+	
 	public Samus(int i, int j, KnownArea knownArea) {
 		this.i = i;
 		this.j = j;
 		this.knownArea = knownArea;
 		direction = 1;
+		ammoLeft = 5;
 	}
 	
 	public void setI(int i) {
@@ -27,6 +30,10 @@ public class Samus {
 	
 	public void setDirection(int direction) {
 		this.direction = direction;
+	}
+	
+	public void tookAShot() {
+		ammoLeft--;
 	}
 	
 	public int getI() {
@@ -43,5 +50,9 @@ public class Samus {
 	
 	public KnownArea getKnownArea() {
 		return knownArea;
+	}
+	
+	public int getAmmoLeft() {
+		return ammoLeft;
 	}
 }

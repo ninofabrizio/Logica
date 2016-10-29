@@ -57,7 +57,8 @@ public class Cave extends JPanel {
 				caveMap[i][j].setI(i);
 				caveMap[i][j].setJ(j);
 				
-				if(line[j] == 'X') {
+				// Our position [1,1] in the matrix
+				if(i == 11 && j == 0) {
 					
 					caveMap[i][j].setSamus(new Samus(i, j, new KnownArea(zoneWidth, zoneHeight)));
 					samusZone = caveMap[i][j];
@@ -101,7 +102,7 @@ public class Cave extends JPanel {
 					g2d.setPaint(Color.BLACK);
 					g2d.fill(rt);
 				}
-				else if(caveMap[i][j].getType() == 'X') {
+				else if(i == 11 && j == 0) {
 					
 					try {
 						im = ImageIO.read(new File("img/exit.png"));
@@ -109,9 +110,9 @@ public class Cave extends JPanel {
 						System.out.println(e.getMessage());
 						System.exit(1);
 					}
-					g.drawImage(im, ((int)xPos - im.getWidth(null))/2, ((int)yPos - im.getHeight(null))/2, null);
+					g.drawImage(im, (int)xPos, (int)yPos, null);
 				}
-				else if(caveMap[i][j].getType() == 'G') {
+				else if(caveMap[i][j].getType() == 'O') {
 					
 					try {
 						im = ImageIO.read(new File("img/gold.png"));
@@ -119,7 +120,7 @@ public class Cave extends JPanel {
 						System.out.println(e.getMessage());
 						System.exit(1);
 					}
-					g.drawImage(im, ((int)xPos - im.getWidth(null))/2, ((int)yPos - im.getHeight(null))/2, null);
+					g.drawImage(im, (int)xPos, (int)yPos, null);
 				}
 				else if(caveMap[i][j].getType() == 'U') {
 					
@@ -129,7 +130,7 @@ public class Cave extends JPanel {
 						System.out.println(e.getMessage());
 						System.exit(1);
 					}
-					g.drawImage(im, ((int)xPos - im.getWidth(null))/2, ((int)yPos - im.getHeight(null))/2, null);
+					g.drawImage(im, (int)xPos, (int)yPos, null);
 				}
 				else if(caveMap[i][j].getType() == 'd') {
 					
@@ -139,7 +140,7 @@ public class Cave extends JPanel {
 						System.out.println(e.getMessage());
 						System.exit(1);
 					}
-					g.drawImage(im, ((int)xPos - im.getWidth(null))/2, ((int)yPos - im.getHeight(null))/2, null);
+					g.drawImage(im, (int)xPos, (int)yPos, null);
 				}
 				else if(caveMap[i][j].getType() == 'D') {
 					
@@ -149,7 +150,7 @@ public class Cave extends JPanel {
 						System.out.println(e.getMessage());
 						System.exit(1);
 					}
-					g.drawImage(im, ((int)xPos - im.getWidth(null))/2, ((int)yPos - im.getHeight(null))/2, null);
+					g.drawImage(im, (int)xPos, (int)yPos, null);
 				}
 				else if(caveMap[i][j].getType() == 'T') {
 					
@@ -159,7 +160,7 @@ public class Cave extends JPanel {
 						System.out.println(e.getMessage());
 						System.exit(1);
 					}
-					g.drawImage(im, ((int)xPos - im.getWidth(null))/2, ((int)yPos - im.getHeight(null))/2, null);
+					g.drawImage(im, (int)xPos, (int)yPos, null);
 				}
 				
 				if(i == samusZone.getI() && j == samusZone.getJ()) {
@@ -206,7 +207,7 @@ public class Cave extends JPanel {
 							System.err.println("WRONG SAMUS POSITION GIVEN");
 							System.exit(1);
 					}
-					g.drawImage(im, ((int)xPos + im.getWidth(null)), ((int)yPos + im.getHeight(null)), null);
+					g.drawImage(im, (int)xPos, (int)yPos, null);
 				}
 			}
 		}

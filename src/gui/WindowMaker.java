@@ -1,19 +1,27 @@
 package gui;
 
 import java.awt.BorderLayout;
+import java.awt.Color;
 import java.awt.Dimension;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.GridLayout;
+import java.awt.Image;
 import java.awt.Toolkit;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.geom.Rectangle2D;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 
+import javax.imageio.ImageIO;
 import javax.swing.JButton;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
+import javax.swing.JProgressBar;
 import javax.swing.JTextArea;
 import javax.swing.filechooser.FileFilter;
 import javax.swing.filechooser.FileNameExtensionFilter;
@@ -26,32 +34,38 @@ public class WindowMaker extends JFrame {
 	private int DEFAULT_WIDTH;
 	private int DEFAULT_HEIGHT;
 	
-	int screenWidth;
-	int screenHeight;
+	private int screenWidth;
+	private int screenHeight;
 	
-	private JFrame optionFrame;
-	private JPanel optionPanel;
+	private JPanel mainPanel;
+	private JPanel mapsPanel;
 	private JPanel infoPanel;
-	private JButton randomMap;
-	private JButton defaultMap;
-	private JButton startWalk;
+	
+	private JProgressBar lifeBar;
+	private JTextArea gameInfoText;
+	private AmmoPanel ammoPanel;
 	
 	private Cave cave;
 	private KnownArea knownArea;
 	
 	public WindowMaker(int w, int h) {
 		
-		DEFAULT_WIDTH = (w * 12) + (w/2) + 200;
-		DEFAULT_HEIGHT = (h * 12) + (2*h);
+		DEFAULT_WIDTH = (w * 13);
+		DEFAULT_HEIGHT = (h * 13);
 		
 		cave = new Cave(w, h);
-		knownArea = new KnownArea(w, h);
 		
 		getScreenDimensions();
 		
+		mainPanel = new JPanel();
+		mainPanel.setLayout(new BorderLayout());
+		mapsPanel = new JPanel();
+		mapsPanel.setLayout(new GridLayout(0,2));
 		infoPanel = new JPanel();
-		infoPanel.setLayout(new BorderLayout());
-		infoPanel.setBounds((w * 12), 0, 200, (h * 12) - (2 * h));
+		infoPanel.setLayout(new GridLayout(0,2));
+		mainPanel.add(mapsPanel, BorderLayout.CENTER);
+		mainPanel.add(infoPanel, BorderLayout.SOUTH);
+		getContentPane().add(mainPanel);
 		
 		setMenu();
 	}
@@ -66,8 +80,8 @@ public class WindowMaker extends JFrame {
 	
 	public void setMenu() {
 		
-		optionFrame = new JFrame();
-		optionPanel = new JPanel();
+		JFrame optionFrame = new JFrame();
+		JPanel optionPanel = new JPanel();
 		int oFrameWidth = 300;
 		int oFrameHeight = 100;
 		int xPos = (screenWidth - oFrameWidth)/2;
@@ -77,9 +91,9 @@ public class WindowMaker extends JFrame {
 		optionFrame.getContentPane().add(optionPanel);
 		
 		optionPanel.setLayout(new BorderLayout());
-		defaultMap = new JButton("LOAD DEFAULT MAP");
+		JButton defaultMap = new JButton("LOAD DEFAULT MAP");
 		optionPanel.add(defaultMap, BorderLayout.NORTH);
-		randomMap = new JButton("GENERATE RANDOM MAP");
+		JButton randomMap = new JButton("GENERATE RANDOM MAP");
 		optionPanel.add(randomMap, BorderLayout.SOUTH);
 		
 		optionFrame.setResizable(true);
@@ -112,7 +126,7 @@ public class WindowMaker extends JFrame {
 		FileReader fr = null;
 		BufferedReader br = null;
 		
-		file = new File("mapa.txt");
+		file = new File("IA_2016.2_mapa.txt");
 		
 		if (file.canRead() && file.exists()) {
 			try {
@@ -133,17 +147,13 @@ public class WindowMaker extends JFrame {
 	
 	private void setMap() {
 		
-		int xPos = (screenWidth - DEFAULT_WIDTH)/2;
-		int yPos = (screenHeight - DEFAULT_HEIGHT)/2;
+		JPanel samusInfoPanel = new JPanel();
+		samusInfoPanel.setLayout(new BorderLayout());
 		
-		setBounds(xPos, yPos, DEFAULT_WIDTH, DEFAULT_HEIGHT);
-		setResizable(true);
-		setTitle("Samus' Space Adventure");
-		setDefaultCloseOperation(EXIT_ON_CLOSE);
+		knownArea = cave.getSamusZone().getSamus().getKnownArea();
 		
-		startWalk = new JButton("START EXPLORING");
-		infoPanel.add(startWalk, BorderLayout.PAGE_END);
-		
+		// First, the button to start the logic
+		JButton startWalk = new JButton("START EXPLORING");
 		startWalk.addActionListener(new ActionListener() {
 			
 			public void actionPerformed(ActionEvent e) { 
@@ -151,25 +161,77 @@ public class WindowMaker extends JFrame {
 	    		new Thread() {
 	                @Override
 	                public void run() {
-	                	// HERE WE CALL THE LOGIC CALLING METHOD
+	                	// HERE WE CALL THE LOGIC CALLING OBJECT METHOD
 	                	startWalk.setEnabled(false);
+	                	
+	                	// TODO Just testing my thread here
+	                	/*for(int i = 0; i <= 5; i++) {
+	                		cave.getZones()[i+1][0].setType('D');
+	                		cave.repaint();
+	                		setLifeBarValue(i);
+	                		setGameInfoText(Integer.toString(i) + "\n\n");
+	                		setAmmoPanelValue(i);
+	                		try {
+	                			sleep(1000);
+	                		} catch (InterruptedException e) {
+	                			// TODO Auto-generated catch block
+	                			e.printStackTrace();
+	                		}
+	                	}*/
+	                	startWalk.setEnabled(true);
 	                }
 	    		}.start();
 			}
 		});
+		infoPanel.add(startWalk);
 		
-		/*JTextArea ta = new JTextArea();
-		ta.setBounds(50, 0, 300, 300);
-		ta.setLineWrap(true);
-		ta.setWrapStyleWord(true);
-		ta.setEditable(false);
-		ta.setText("Here we will put all the info:\n-Candies with quantity\n-Total time");
-		infoPanel.add(ta);*/
+		// Second, the life bar status
+	    lifeBar = new JProgressBar();
+	    lifeBar.setStringPainted(true);
+	    lifeBar.setString("Health = 100");
+	    lifeBar.setMinimum(0);
+	    lifeBar.setMaximum(100);
+	    lifeBar.setValue(100);
+	    lifeBar.setForeground(Color.DARK_GRAY);
+	    lifeBar.setBackground(Color.BLACK);
+	    infoPanel.add(lifeBar);
+	    
+	    // Third, the general info
+		gameInfoText = new JTextArea();
+		gameInfoText.setLineWrap(true);
+		gameInfoText.setWrapStyleWord(true);
+		gameInfoText.setEditable(false);
+		gameInfoText.setText("GENERAL GAME INFO:\n-SCORE = 0\n-NUMBER OF ACTIONS TAKEN = 0");
+		infoPanel.add(gameInfoText);
 		
-		getContentPane().add(infoPanel);
-		getContentPane().add(cave);
-		//getContentPane().add(cave.getSamusZone().getSamus().getKnownArea());
+		// Forth, the remaining ammo
+		ammoPanel = new AmmoPanel(cave.getSamusZone().getSamus().getAmmoLeft());
+		infoPanel.add(ammoPanel);
 		
+		mapsPanel.add(cave);
+		mapsPanel.add(knownArea);
+		
+		int xPos = (screenWidth - DEFAULT_WIDTH)/2;
+		int yPos = (screenHeight - DEFAULT_HEIGHT)/2;
+		
+		setBounds(xPos, yPos, DEFAULT_WIDTH, DEFAULT_HEIGHT);
+		setResizable(true);
+		setTitle("Not a Metroid® Game");
+		setDefaultCloseOperation(EXIT_ON_CLOSE);
 		setVisible(true);
+	}
+	
+	public void setLifeBarValue(int newValue) {
+		lifeBar.setValue(newValue);
+		lifeBar.setString("Health = " + newValue);
+	}
+	
+	public void setGameInfoText(String text) {
+		gameInfoText.setText(text);
+	}
+	
+	public void setAmmoPanelValue(int ammo) {
+		ammoPanel.setAmmoCount(ammo);
+		ammoPanel.repaint();
 	}
 }
