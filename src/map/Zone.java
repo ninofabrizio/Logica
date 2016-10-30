@@ -6,7 +6,7 @@ public class Zone {
 
 	private char type;
 	private Samus samus;
-
+	private boolean zoneExplored = false;
     private int i, j;
     
 	public void setI(int i) {
@@ -25,6 +25,10 @@ public class Zone {
 		samus = s;
 	}
 	
+	public void setExplored(boolean condition) {
+		zoneExplored = condition;
+	}
+	
 	public int getI() { 
 		return i;
 	}
@@ -39,5 +43,9 @@ public class Zone {
 	
 	public Samus getSamus() {
 		return samus;
+	}
+	
+	public boolean wasExplored() {
+		return zoneExplored;
 	}
 }

@@ -41,17 +41,17 @@ public class WindowMaker extends JFrame {
 	private JPanel mapsPanel;
 	private JPanel infoPanel;
 	
-	private JProgressBar lifeBar;
-	private JTextArea gameInfoText;
-	private AmmoPanel ammoPanel;
+	private static JProgressBar lifeBar;
+	private static JTextArea gameInfoText;
+	private static AmmoPanel ammoPanel;
 	
 	private Cave cave;
 	private KnownArea knownArea;
 	
 	public WindowMaker(int w, int h) {
 		
-		DEFAULT_WIDTH = (w * 13);
-		DEFAULT_HEIGHT = (h * 13);
+		DEFAULT_WIDTH = (w * 15);
+		DEFAULT_HEIGHT = (h * 15);
 		
 		cave = new Cave(w, h);
 		
@@ -161,7 +161,9 @@ public class WindowMaker extends JFrame {
 	    		new Thread() {
 	                @Override
 	                public void run() {
-	                	// HERE WE CALL THE LOGIC CALLING OBJECT METHOD
+	                	
+	                	// TODO HERE WE CALL THE LOGIC CALLING OBJECT METHOD
+	                	
 	                	startWalk.setEnabled(false);
 	                	
 	                	// TODO Just testing my thread here
@@ -169,16 +171,15 @@ public class WindowMaker extends JFrame {
 	                		cave.getZones()[i+1][0].setType('D');
 	                		cave.repaint();
 	                		setLifeBarValue(i);
-	                		setGameInfoText(Integer.toString(i) + "\n\n");
+	                		setGameInfoText(Integer.toString(i), Integer.toString(i+1));
 	                		setAmmoPanelValue(i);
 	                		try {
 	                			sleep(1000);
 	                		} catch (InterruptedException e) {
-	                			// TODO Auto-generated catch block
 	                			e.printStackTrace();
 	                		}
-	                	}*/
-	                	startWalk.setEnabled(true);
+	                	}
+	                	startWalk.setEnabled(true);*/
 	                }
 	    		}.start();
 			}
@@ -221,16 +222,16 @@ public class WindowMaker extends JFrame {
 		setVisible(true);
 	}
 	
-	public void setLifeBarValue(int newValue) {
+	public static void setLifeBarValue(int newValue) {
 		lifeBar.setValue(newValue);
 		lifeBar.setString("Health = " + newValue);
 	}
 	
-	public void setGameInfoText(String text) {
-		gameInfoText.setText(text);
+	public static void setGameInfoText(String score, String action) {
+		gameInfoText.setText("GENERAL GAME INFO:\n-SCORE = " + score + "\n-NUMBER OF ACTIONS TAKEN = " + action);
 	}
 	
-	public void setAmmoPanelValue(int ammo) {
+	public static void setAmmoPanelValue(int ammo) {
 		ammoPanel.setAmmoCount(ammo);
 		ammoPanel.repaint();
 	}

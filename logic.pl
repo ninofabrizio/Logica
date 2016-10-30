@@ -6,7 +6,7 @@
 %%%%%			Facts			%%%%%
 %% Our main character
 % POSITIONS: 1 == Up || 2 == Down || 3 == Left || 4 == Right
-% Obs.: Have in mind that in our Java matrix, the initial position is [ 11 | 0 ]
+% Obs.: Have in mind that in our Java matrix, the initial position is [ 12 | 1 ]
 samus( [1, 1], 1, 100, 5, 0 ). % Position | Facing Direction | Health | Ammo | Score
 
 
