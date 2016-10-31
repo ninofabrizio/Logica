@@ -7,7 +7,7 @@
 %% Our main character
 % POSITIONS: 1 == Up || 2 == Down || 3 == Left || 4 == Right
 % Obs.: Have in mind that in our Java matrix, the initial position is [ 12 | 1 ]
-samus( [1, 1], 1, 100, 5, 0 ). % Position | Facing Direction | Health | Ammo | Score
+samus( [1 | 1], 1, 100, 5, 0 ). % Position | Facing Direction | Health | Ammo | Score
 
 
 
@@ -27,9 +27,9 @@ move( M ) :- samus([ I1 | J1 ],D,_,_,_), I1 < 12, (D == 1, I2 is I1 + 1, I2 =< 1
 % Move right
 move( M ) :- samus([ I1 | J1 ],D,_,_,_), J1 < 12, (D == 4, J2 is J1 + 1, J2 =< 12, statusChange('P', [ I1 | J2 ]), M = 'M', ! ; D \= 4, turnRight, M = 'D', !).
 % Move down
-move( M ) :- samus([ I1 | J1 ],D,_,_,_), J1 > 1, (D == 2, J2 is J1 - 1, J2 >= 1, statusChange('P', [ I1 | J2 ]), M = 'M', ! ; D \= 2, turnRight, M = 'D', !).
+move( M ) :- samus([ I1 | J1 ],D,_,_,_), I1 > 1, (D == 2, I2 is I1 - 1, I2 >= 1, statusChange('P', [ I2 | J1 ]), M = 'M', ! ; D \= 2, turnRight, M = 'D', !).
 % Move left
-move( M ) :- samus([ I1 | J1 ],D,_,_,_), I1 > 2, (D == 3, I2 is I1 - 1, I2 >= 1, statusChange('P', [ I2 | J1 ]), M = 'M', ! ; D \= 3, turnRight, M = 'D', !).
+move( M ) :- samus([ I1 | J1 ],D,_,_,_), I1 > 2, (D == 3, J2 is J1 - 1, J2 >= 1, statusChange('P', [ I1 | J2 ]), M = 'M', ! ; D \= 3, turnRight, M = 'D', !).
 
 
 %% Right turn rule, turns one time only

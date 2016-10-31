@@ -11,12 +11,17 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.util.Map;
 
 import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
 import javax.swing.JProgressBar;
 import javax.swing.JTextArea;
+
+import org.jpl7.Atom;
+import org.jpl7.Query;
+import org.jpl7.Term;
 
 import map.Cave;
 import map.KnownArea;
@@ -155,9 +160,105 @@ public class WindowMaker extends JFrame {
 	                @Override
 	                public void run() {
 	                	
-	                	// TODO HERE WE CALL THE LOGIC CALLING OBJECT METHOD
-	                	
 	                	startWalk.setEnabled(false);
+	                	
+	                	Query q1 = new Query("consult", new Term[] { new Atom("logic.pl") });
+                		q1.hasSolution();
+	                	
+	                	// TODO This loop is just a test to see how prolog behaves and how to extract values from the returned list
+	                	while(true) {
+	                		
+	                		// TODO HERE WE CALL THE LOGIC CALLING OBJECT METHOD
+	                		
+	            			Query q2 = new Query("action(X)");
+	            		
+	            			Map<String, Term>[] solution = q2.allSolutions();
+	            		
+	            			// These I use to get the values of interest
+	            			Character action = null;
+	            			int posX = 0, posY = 0, direction = 0, health = 0, ammo = 0, score = 0;
+	            			
+	            			if (solution != null) {
+	            				//System.out.println(q2.toString());
+	            				
+	            				// For every solution returned by prolog
+	            				for (int i = 0; i < solution.length; i++) {
+	            					
+	            					System.out.println("\nX" + i + " = " + solution[i].get("X").toString());
+	            					//System.out.println("X length = " + solution[i].get("X").listLength());
+	            					//System.out.println(solution[i].get("X").arg(2).arg(2).arg(2).toString());
+	            					
+	            					// Extracting term, because, head is 1 value, body is another term
+	            					Term term = solution[i].get("X");
+	            					for (int j = 0; j < solution[i].get("X").listLength(); j++, term = term.arg(2)) {
+	            						
+	            						// Here enters the actions (letter)
+	            						if(j == 0 && term.arg(1).toString().contains("'")) {
+	            							//System.out.println(term.arg(1).toString().charAt(1));
+	            							action = term.arg(1).toString().charAt(1);
+	            						}
+	            						// By being second iteration, I know that first argument is a list of [i,j] position
+	            						else if(j == 1 && action == 'M') {
+	            							//System.out.println(term.arg(1).arg(1).toString());
+	            							posX = Integer.parseInt(term.arg(1).arg(1).toString());
+	            							//System.out.println(term.arg(1).arg(2).toString());
+	            							posY = Integer.parseInt(term.arg(1).arg(2).toString());
+	            						}
+	            						
+	            						// And here the rest (numbers)
+	            						else {
+	            							//System.out.println(term.arg(1).toString());
+	            							if(j == 2)
+	            								direction = Integer.parseInt(term.arg(1).toString());
+	            							else if(j == 3)
+	            								health = Integer.parseInt(term.arg(1).toString());
+	            							else if(j == 4)
+	            								ammo = Integer.parseInt(term.arg(1).toString());
+	            							else if(j == 5)
+	            								score = Integer.parseInt(term.arg(1).toString());
+	            						}
+	            					}
+	            				}
+	            				
+	            				posX = 13 - posX;
+	            				//posY = 12 - posY;
+	            				
+	            				//System.out.println(action);
+	            				//System.out.println(direction);
+	            				//System.out.println(health);
+	            				//System.out.println(ammo);
+	            				//System.out.println(score);
+	            				
+	            				// Updating my values, by the action taken
+	            				if(action == 'M') {
+    								cave.getSamusZone().getSamus().setActionsTaken(1);
+    	            				cave.getSamusZone().getSamus().setScore(-1);
+    	            				setGameInfoText(Integer.toString(cave.getSamusZone().getSamus().getScore()), Integer.toString(cave.getSamusZone().getSamus().getActionsTaken()));
+    	            				
+    	            				cave.getSamusZone().getSamus().setI(posX);
+    	            				cave.getSamusZone().getSamus().setJ(posY);
+    	            				
+    	            				Cave.getZones()[posX][posY].setSamus(cave.getSamusZone().getSamus());
+    	            				cave.getSamusZone().setSamus(null);
+    	            				cave.setSamusZone(Cave.getZones()[posX][posY]);
+    							}
+	            				else if(action == 'D') {
+    								cave.getSamusZone().getSamus().setActionsTaken(1);
+    	            				cave.getSamusZone().getSamus().setScore(-1);
+    	            				setGameInfoText(Integer.toString(cave.getSamusZone().getSamus().getScore()), Integer.toString(cave.getSamusZone().getSamus().getActionsTaken()));
+    	            				
+    	            				cave.getSamusZone().getSamus().setDirection(direction);
+    							}
+	            				
+	            				cave.repaint();
+	            			}
+	            		
+	            			try {
+	            				sleep(600);
+                			} catch (InterruptedException e) {
+                				e.printStackTrace();
+                			}
+	                	}
 	                	
 	                	// TODO Just testing my thread here
 	                	/*for(int i = 0; i <= 5; i++) {

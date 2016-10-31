@@ -62,6 +62,14 @@ public class KnownArea extends JPanel {
 					exploredMap[i][j].setType('w');
 			}
 		}
+		
+		// TODO PRINT TEST
+		/*System.out.println("\nKNOWN MAP:");
+		for(int i = 0; i < 14; i++) {
+			for(int j = 0; j < 14; j++)
+				System.out.print(exploredMap[i][j].getType() + " ");
+			System.out.println();
+		}*/
 	}
 	
 	public void setMyZone(Zone zone) {
@@ -99,6 +107,14 @@ public class KnownArea extends JPanel {
 				exploredMap[neighborZones.get(i).getI()][neighborZones.get(i).getJ()].setType(neighborZones.get(i).getType());
 		}
 		
+		// TODO PRINT TEST
+		/*System.out.println("\nKNOWN MAP:");
+		for(int i = 0; i < 14; i++) {
+			for(int j = 0; j < 14; j++)
+				System.out.print(exploredMap[i][j].getType() + " ");
+			System.out.println();
+		}*/
+		
 		repaint();
 	}
 	
@@ -128,7 +144,7 @@ public class KnownArea extends JPanel {
 			return true;
 		}
 		else if(Cave.getZones()[i][j].getType() == 'U') {
-			//myZone.getSamus().setScore(-1);
+			myZone.getSamus().setScore(-1);
 			if(myZone.getSamus().getHealth() <= 80) {
 				Cave.getZones()[i][j].setType('.');
 				exploredMap[i][j].setType('.');
@@ -175,12 +191,12 @@ public class KnownArea extends JPanel {
 		}
 		else if(Cave.getZones()[i][j].getType() == 'W') {
 			
-			// TODO RANDOM NEW POSITION METHOD CALLING HERE
+			// TODO SHE SHOULD HAVE FELT IT IN PROLOG...
 			
-			exploredMap[i][j].setType('T');
+			exploredMap[i][j].setType('W');
 			
-			if(!enemyZones.contains(exploredMap[i][j]))
-				enemyZones.add(exploredMap[i][j]);
+			if(!wallZones.contains(exploredMap[i][j]))
+				wallZones.add(exploredMap[i][j]);
 			
 			return false;
 		}
@@ -368,7 +384,7 @@ public class KnownArea extends JPanel {
 								break;
 								
 							default:
-								System.err.println("WRONG SAMUS POSITION GIVEN");
+								System.err.println("WRONG SAMUS DIRECTION GIVEN");
 								System.exit(1);
 						}
 						g.drawImage(im, (int)xPos, (int)yPos, null);

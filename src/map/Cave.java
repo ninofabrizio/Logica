@@ -42,6 +42,11 @@ public class Cave extends JPanel {
 		return samusZone;
 	}
 	
+	public void setSamusZone(Zone zone) {
+		
+		samusZone = zone;
+	}
+	
 	public void loading(BufferedReader br) throws IOException {
 		
 		String s;
@@ -75,6 +80,14 @@ public class Cave extends JPanel {
 					caveMap[i][j].setSamus(null);
 			}
 		}
+		
+		// TODO PRINT TEST
+		/*System.out.println("\nCAVE MAP:");
+		for(int i = 0; i < 14; i++) {
+			for(int j = 0; j < 14; j++)
+				System.out.print(caveMap[i][j].getType() + " ");
+			System.out.println();
+		}*/
 		
 		samusZone.getSamus().feelNeighbors();
 	}
@@ -110,6 +123,14 @@ public class Cave extends JPanel {
 		generateRandomPosition(8, 'P');
 		generateRandomPosition(3, 'U');
 		generateRandomPosition(3, 'O');
+		
+		// TODO PRINT TEST
+		/*System.out.println("\nCAVE MAP:");
+		for(int i = 0; i < 14; i++) {
+			for(int j = 0; j < 14; j++)
+				System.out.print(caveMap[i][j].getType() + " ");
+			System.out.println();
+		}*/
 		
 		samusZone.getSamus().feelNeighbors();
 	}
@@ -267,7 +288,7 @@ public class Cave extends JPanel {
 					}
 					
 					if(i == samusZone.getI() && j == samusZone.getJ()) {
-						//System.out.println(i + " : " + j);
+						//System.out.println(samusZone.getSamus().getDirection());
 						switch(samusZone.getSamus().getDirection()) {
 						
 							case 1:
@@ -307,7 +328,7 @@ public class Cave extends JPanel {
 								break;
 								
 							default:
-								System.err.println("WRONG SAMUS POSITION GIVEN");
+								System.err.println("WRONG SAMUS DIRECTION GIVEN");
 								System.exit(1);
 						}
 						g.drawImage(im, (int)xPos, (int)yPos, null);
