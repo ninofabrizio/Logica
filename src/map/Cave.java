@@ -8,6 +8,7 @@ import java.awt.geom.Rectangle2D;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
+import java.util.concurrent.ThreadLocalRandom;
 
 import javax.imageio.ImageIO;
 import javax.swing.JPanel;
@@ -79,10 +80,98 @@ public class Cave extends JPanel {
 	}
 	
 	public void generateRandomMap() {
-		// TODO Auto-generated method stub
 		
+		for(int i = 0; i < 14; i++) {
+			for(int j = 0; j < 14; j++) {
+				
+				caveMap[i][j] = new Zone();
+				if(i == 0 || i == 13 || j == 0 || j == 13)
+					caveMap[i][j].setType('W');
+				else
+					caveMap[i][j].setType('.');
+				caveMap[i][j].setI(i);
+				caveMap[i][j].setJ(j);
+				
+				// Our position [1,1] in the matrix
+				if(i == 12 && j == 1) {
+					
+					caveMap[i][j].setSamus(new Samus(i, j, new KnownArea(zoneWidth, zoneHeight)));
+					samusZone = caveMap[i][j];
+					samusZone.getSamus().getKnownArea().setMyZone(caveMap[i][j]);
+				}
+				else
+					caveMap[i][j].setSamus(null);
+			}
+		}
+		
+		generateRandomPosition(2, 'd');
+		generateRandomPosition(2, 'D');
+		generateRandomPosition(4, 'T');
+		generateRandomPosition(8, 'P');
+		generateRandomPosition(3, 'U');
+		generateRandomPosition(3, 'O');
+		
+		samusZone.getSamus().feelNeighbors();
 	}
 	
+	private void generateRandomPosition(int num, char type) {
+		
+		for(int k = 1; k <= num; k++) {
+			
+			int i = 12, j = 1;
+			while((i == 12 && j == 1) || caveMap[i][j].getType() != '.' || sameNeighbors(type, i, j)) {
+				i = ThreadLocalRandom.current().nextInt(1, 12 + 1);
+				j = ThreadLocalRandom.current().nextInt(1, 12 + 1);
+			}
+			
+			caveMap[i][j].setType(type);
+		}
+	}
+
+	private boolean sameNeighbors(char type, int i, int j) {
+		
+		//if(type == 'd' || type == 'D' || type == 'T' || type == 'P') {
+			// Checking closest neighbors
+			if(caveMap[i+1][j].getType() == type || caveMap[i-1][j].getType() == type
+					|| caveMap[i][j+1].getType() == type || caveMap[i][j-1].getType() == type
+					|| caveMap[i+1][j+1].getType() == type || caveMap[i+1][j-1].getType() == type
+					|| caveMap[i-1][j-1].getType() == type || caveMap[i-1][j+1].getType() == type)
+				return true;
+			
+			// Checking farthest neighbors
+			if((i == 1 && j == 1) && (caveMap[i+2][j].getType() == type || caveMap[i][j+2].getType() == type))
+				return true;
+			
+			if((i == 1 && (j >= 2 && j <= 11)) && (caveMap[i][j-2].getType() == type
+													|| caveMap[i+2][j].getType() == type || caveMap[i][j+2].getType() == type))
+				return true;
+			
+			if((i == 1 && j == 12) && (caveMap[i][j-2].getType() == type || caveMap[i+2][j].getType() == type))
+				return true;
+			
+			if(((i >= 2 && i <= 11) && j == 12) && (caveMap[i-2][j].getType() == type
+													|| caveMap[i][j-2].getType() == type || caveMap[i+2][j].getType() == type))
+				return true;
+			
+			if((i == 12 && j == 12) && (caveMap[i-2][j].getType() == type || caveMap[i][j-2].getType() == type))
+				return true;
+			
+			if((i == 12 &&(j >= 2 && j <= 11)) && (caveMap[i][j-2].getType() == type
+													|| caveMap[i-2][j].getType() == type || caveMap[i][j+2].getType() == type))
+				return true;
+			
+			if(((i >= 2 && i <= 11) && j == 1) && (caveMap[i-2][j].getType() == type
+													|| caveMap[i][j+2].getType() == type || caveMap[i+2][j].getType() == type))
+				return true;
+			
+			if(((i >= 2 && i <= 11) && (j >= 2 && j <= 11)) && (caveMap[i+2][j].getType() == type || caveMap[i-2][j].getType() == type 
+																|| caveMap[i][j+2].getType() == type || caveMap[i][j-2].getType() == type))
+				return true;
+		//}
+
+		return false;
+	}
+
 	public void paintComponent(Graphics g) {
 		
 		super.paintComponent(g);

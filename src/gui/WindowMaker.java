@@ -3,28 +3,20 @@ package gui;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
-import java.awt.Graphics;
-import java.awt.Graphics2D;
 import java.awt.GridLayout;
-import java.awt.Image;
 import java.awt.Toolkit;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.awt.geom.Rectangle2D;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 
-import javax.imageio.ImageIO;
 import javax.swing.JButton;
-import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
 import javax.swing.JProgressBar;
 import javax.swing.JTextArea;
-import javax.swing.filechooser.FileFilter;
-import javax.swing.filechooser.FileNameExtensionFilter;
 
 import map.Cave;
 import map.KnownArea;
@@ -50,12 +42,13 @@ public class WindowMaker extends JFrame {
 	
 	public WindowMaker(int w, int h) {
 		
-		DEFAULT_WIDTH = (w * 15);
-		DEFAULT_HEIGHT = (h * 15);
-		
 		cave = new Cave(w, h);
 		
 		getScreenDimensions();
+		
+		DEFAULT_WIDTH = screenWidth;//(w * 15);
+		DEFAULT_HEIGHT = screenHeight;//(h * 15);
+	    setExtendedState(getExtendedState() | JFrame.MAXIMIZED_BOTH);
 		
 		mainPanel = new JPanel();
 		mainPanel.setLayout(new BorderLayout());
@@ -189,7 +182,7 @@ public class WindowMaker extends JFrame {
 		// Second, the life bar status
 	    lifeBar = new JProgressBar();
 	    lifeBar.setStringPainted(true);
-	    lifeBar.setString("Health = 100");
+	    setLifeBarValue(100);
 	    lifeBar.setMinimum(0);
 	    lifeBar.setMaximum(100);
 	    lifeBar.setValue(100);
@@ -202,7 +195,7 @@ public class WindowMaker extends JFrame {
 		gameInfoText.setLineWrap(true);
 		gameInfoText.setWrapStyleWord(true);
 		gameInfoText.setEditable(false);
-		gameInfoText.setText("GENERAL GAME INFO:\n-SCORE = 0\n-NUMBER OF ACTIONS TAKEN = 0");
+		setGameInfoText(Integer.toString(0), Integer.toString(0));
 		infoPanel.add(gameInfoText);
 		
 		// Forth, the remaining ammo
@@ -228,7 +221,7 @@ public class WindowMaker extends JFrame {
 	}
 	
 	public static void setGameInfoText(String score, String action) {
-		gameInfoText.setText("GENERAL GAME INFO:\n-SCORE = " + score + "\n-NUMBER OF ACTIONS TAKEN = " + action);
+		gameInfoText.setText("GENERAL INFO:\n-SCORE = " + score + "\n-NUMBER OF ACTIONS TAKEN = " + action);
 	}
 	
 	public static void setAmmoPanelValue(int ammo) {

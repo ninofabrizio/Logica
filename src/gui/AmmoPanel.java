@@ -31,15 +31,14 @@ public class AmmoPanel extends JPanel {
 		int xPos;
 		int i;
 		
-		for(i = 0, xPos = 0; i < ammoCount; i++, xPos += 100) {
-				
-			try {
-				im = ImageIO.read(new File("img/ammo.png"));
-			} catch (IOException e) {
-				System.out.println(e.getMessage());
-				System.exit(1);
-			}
-			g.drawImage(im, xPos, 0, null);
+		try {
+			im = ImageIO.read(new File("img/ammo.png"));
+		} catch (IOException e) {
+			System.out.println(e.getMessage());
+			System.exit(1);
 		}
+		
+		for(i = 0, xPos = 0; i < ammoCount; i++, xPos += im.getWidth(null))
+			g.drawImage(im, xPos, 0, null);
 	}
 }
