@@ -21,8 +21,7 @@ public class KnownArea extends JPanel {
 	// TODO Dictionary for extra types:
 	// 'u' == unknown/unexplored zone
 	// 'p' == possible hole
-	// 'e' == possible Pirate (small enemy)
-	// 'E' == possible Metroid (big enemy)
+	// 'e' == possible Pirate (small enemy) or Metroid (big enemy)
 	// 'r' == possible Ridley (teleport)
 	// 'w' == unknown wall
 	private static Zone exploredMap[][] = null;
@@ -42,6 +41,7 @@ public class KnownArea extends JPanel {
 	 * - Methods listed below in verifyValidPosition
 	 * - Method to check and update our holeZones list for each step
 	 * - Some other methods we'll still need...
+	 * - Adjust wall cells that are corners when It's walls neighbors are both marked as known walls ('W'), just to paint it right
 	 */
 	
 	public KnownArea(int zoneWidth, int zoneHeight) {
@@ -315,17 +315,14 @@ public class KnownArea extends JPanel {
 					else if(exploredMap[i][j].getType() == 'e') {
 						
 						try {
-							im = ImageIO.read(new File("img/possible_pirate.png"));
+							im = ImageIO.read(new File("img/possible_metroid.png"));
 						} catch (IOException e) {
 							System.out.println(e.getMessage());
 							System.exit(1);
 						}
 						g.drawImage(im, (int)xPos, (int)yPos, null);
-					}
-					else if(exploredMap[i][j].getType() == 'E') {
-						
 						try {
-							im = ImageIO.read(new File("img/possible_metroid.png"));
+							im = ImageIO.read(new File("img/possible_pirate.png"));
 						} catch (IOException e) {
 							System.out.println(e.getMessage());
 							System.exit(1);
@@ -391,38 +388,26 @@ public class KnownArea extends JPanel {
 					}
 				}
 				// Cave walls
-				else if((i == 0 && j == 0) || (i == 13 && j == 13)) {
+				else if(((i == 0 || i == 13) && (j >= 0 && j <= 13)) || ((j == 0 || j == 13) && (i >= 0 && i <= 13))) {
 					
 					if(exploredMap[i][j].getType() == 'w')
 						g2d.setPaint(Color.GRAY);
 					else if(exploredMap[i][j].getType() == 'W')
 						g2d.setPaint(Color.RED);
 					
+					double xTemp = zoneWidth/2, yTemp = zoneHeight/2;
+
 					rt = new Rectangle2D.Double(xPos, yPos, zoneWidth/2, zoneHeight/2);
 					g2d.fill(rt);
 					
-					double xTemp = zoneWidth/2, yTemp = zoneHeight/2;
+					if(j == 0 || j == 13)
+						rt = new Rectangle2D.Double(xPos, yPos+yTemp, zoneWidth/2, zoneHeight/2);
+					else if (i == 0 || i == 13)
+						rt = new Rectangle2D.Double(xPos+xTemp, yPos, zoneWidth/2, zoneHeight/2);
+					g2d.fill(rt);
 					
-					for(int k = 0; k < 25; k++, xTemp += zoneWidth/2, yTemp += zoneHeight/2) {
-						if(i == 0 && j == 0) {
-							rt = new Rectangle2D.Double(xPos+xTemp, yPos, zoneWidth/2, zoneHeight/2);
-							g2d.fill(rt);
-							rt = new Rectangle2D.Double(xPos, yPos+yTemp, zoneWidth/2, zoneHeight/2);
-							g2d.fill(rt);
-						}
-						else {
-							rt = new Rectangle2D.Double(xPos-xTemp, yPos, zoneWidth/2, zoneHeight/2);
-							g2d.fill(rt);
-							rt = new Rectangle2D.Double(xPos, yPos-yTemp, zoneWidth/2, zoneHeight/2);
-							g2d.fill(rt);
-						}
-					}
-					
-					yPos -= zoneHeight/2;
-					
-					// Jumping unnecessary iterations
-					if(i == 0 && j == 0)
-						break;
+					if(i == 0 && j == 13)
+						yPos -= zoneHeight/2;
 				}
 			}
 		}
