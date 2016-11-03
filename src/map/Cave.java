@@ -189,7 +189,19 @@ public class Cave extends JPanel {
 																|| caveMap[i][j+2].getType() == type || caveMap[i][j-2].getType() == type))
 				return true;
 		//}
-
+			
+		// To avoid mixed "feelings" from neighbors
+		/*if(type == 'd' || type == 'D' || type == 'T' || type == 'P')
+			if(caveMap[i+1][j+1].getType() == 'd' || caveMap[i+1][j-1].getType() == 'd'
+				|| caveMap[i-1][j-1].getType() == 'd' || caveMap[i-1][j+1].getType() == 'd'
+				|| caveMap[i+1][j+1].getType() == 'D' || caveMap[i+1][j-1].getType() == 'D'
+				|| caveMap[i-1][j-1].getType() == 'D' || caveMap[i-1][j+1].getType() == 'D'
+				|| caveMap[i+1][j+1].getType() == 'T' || caveMap[i+1][j-1].getType() == 'T'
+				|| caveMap[i-1][j-1].getType() == 'T' || caveMap[i-1][j+1].getType() == 'T'
+				|| caveMap[i+1][j+1].getType() == 'P' || caveMap[i+1][j-1].getType() == 'P'
+				|| caveMap[i-1][j-1].getType() == 'P' || caveMap[i-1][j+1].getType() == 'P')
+					return true;*/
+			
 		return false;
 	}
 
