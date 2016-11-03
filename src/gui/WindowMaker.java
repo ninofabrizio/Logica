@@ -221,7 +221,7 @@ public class WindowMaker extends JFrame {
 	            				}
 	            				
 	            				posX = 13 - posX;
-	            				//posY = 12 - posY;
+	            				//posY = 13 - posY;
 	            				
 	            				//System.out.println(action);
 	            				//System.out.println(direction);
