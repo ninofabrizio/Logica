@@ -14,8 +14,6 @@ import java.util.ArrayList;
 import javax.imageio.ImageIO;
 import javax.swing.JPanel;
 
-import characters.Samus;
-
 public class KnownArea extends JPanel {
 
 	// TODO Dictionary for extra types:
@@ -24,17 +22,11 @@ public class KnownArea extends JPanel {
 	// 'e' == possible Pirate (small enemy) or Metroid (big enemy)
 	// 'r' == possible Ridley (teleport)
 	// 'w' == unknown wall
+	
 	private static Zone exploredMap[][] = null;
 	private Zone myZone;
-	private Zone exitZone;
 	
 	private int zoneWidth, zoneHeight;
-	
-	// All of these hold the zones of facts that she KNOWS FOR SURE (they may not be needed in the end...)
-	private ArrayList<Zone> energyZones = new ArrayList<Zone>();
-	private ArrayList<Zone> enemyZones = new ArrayList<Zone>();
-	private ArrayList<Zone> holeZones = new ArrayList<Zone>();
-	private ArrayList<Zone> wallZones = new ArrayList<Zone>();
 	
 	/*
 	 * TODO:
@@ -76,139 +68,12 @@ public class KnownArea extends JPanel {
 		myZone = zone;
 	}
 	
-	public void updateMap(ArrayList<Zone> neighborZones) {
-		
-		// Beginning of the game
-		if(exploredMap == null) {
-			//setMyZone(exploredMap[neighborZones.get(i).getI()][neighborZones.get(i).getJ()]);
-			exitZone = exploredMap[neighborZones.get(0).getI()][neighborZones.get(0).getJ()];
-		}
-		
-		for(int i = 0; i < neighborZones.size(); i++) {
-			
-			if(i == 0) {
-				exploredMap[neighborZones.get(i).getI()][neighborZones.get(i).getJ()].setExplored(true);
-				
-				if(verifyValidPosition(neighborZones.get(i).getI(), neighborZones.get(i).getJ())) {
-					
-					exploredMap[neighborZones.get(i).getI()][neighborZones.get(i).getJ()].setSamus(myZone.getSamus());
-					myZone.setSamus(null);
-					myZone = exploredMap[neighborZones.get(i).getI()][neighborZones.get(i).getJ()];
-					myZone.getSamus().setI(neighborZones.get(i).getI());
-					myZone.getSamus().setJ(neighborZones.get(i).getJ());
-					
-					// TODO VERIFY IF ALL GOLDS WHERE TAKEN, AND ACTIVATE ASTAR TO GET TO THE EXIT
-					// OR
-					// TODO GAME OVER, STOP EXECUTION IF LANDED IN A HOLE
-					
-				}
-			}
-			else if(exploredMap[neighborZones.get(i).getI()][neighborZones.get(i).getJ()].getType() == 'u')
-				exploredMap[neighborZones.get(i).getI()][neighborZones.get(i).getJ()].setType(neighborZones.get(i).getType());
-		}
-		
-		// TODO PRINT TEST
-		/*System.out.println("\nKNOWN MAP:");
-		for(int i = 0; i < 14; i++) {
-			for(int j = 0; j < 14; j++)
-				System.out.print(exploredMap[i][j].getType() + " ");
-			System.out.println();
-		}*/
-		
-		repaint();
+	public Zone getMyZone() {
+		return myZone;
 	}
 	
-	// Here we compare where she stands with the map in Cave
-	// Returns TRUE to validate new position changing, FALSE if not
-	// TODO This method may TOTALLY change...
-	private boolean verifyValidPosition(int i, int j) {
-		
-		if(Cave.getZones()[i][j].getType() == 'O') {
-			myZone.getSamus().setScore(1000);
-			exploredMap[i][j].setType('.');
-			Cave.getZones()[i][j].setType('.');
-			
-			// TODO CALL THE METHOD TO TAKE THE GOLD
-			
-			WindowMaker.setGameInfoText(Integer.toString(myZone.getSamus().getScore()), Integer.toString(myZone.getSamus().getActionsTaken()));
-			
-			return true;
-		}
-		else if(Cave.getZones()[i][j].getType() == 'P') {
-			myZone.getSamus().setScore(-1000);
-			myZone.getSamus().setHealth(myZone.getSamus().getHealth() - myZone.getSamus().getHealth());
-			exploredMap[i][j].setType('P');
-			WindowMaker.setGameInfoText(Integer.toString(myZone.getSamus().getScore()), Integer.toString(myZone.getSamus().getActionsTaken()));
-			WindowMaker.setLifeBarValue(myZone.getSamus().getHealth());
-			
-			return true;
-		}
-		else if(Cave.getZones()[i][j].getType() == 'U') {
-			myZone.getSamus().setScore(-1);
-			if(myZone.getSamus().getHealth() <= 80) {
-				Cave.getZones()[i][j].setType('.');
-				exploredMap[i][j].setType('.');
-				myZone.getSamus().setHealth(20);
-				WindowMaker.setLifeBarValue(myZone.getSamus().getHealth());
-			}
-			else {
-				exploredMap[i][j].setType('U');
-				energyZones.add(exploredMap[i][j]);
-			}
-			
-			return true;
-		}
-		else if(Cave.getZones()[i][j].getType() == 'd' || Cave.getZones()[i][j].getType() == 'D') {
-			
-			if(Cave.getZones()[i][j].getType() == 'd') {
-				myZone.getSamus().setScore(-20);
-				myZone.getSamus().setHealth(-20);
-				exploredMap[i][j].setType('d');
-				WindowMaker.setLifeBarValue(myZone.getSamus().getHealth());
-			}
-			else {
-				myZone.getSamus().setScore(-50);
-				myZone.getSamus().setHealth(-50);
-				exploredMap[i][j].setType('D');
-				WindowMaker.setLifeBarValue(myZone.getSamus().getHealth());
-			}
-			
-			if(!enemyZones.contains(exploredMap[i][j]))
-				enemyZones.add(exploredMap[i][j]);
-			
-			return false;
-		}
-		else if(Cave.getZones()[i][j].getType() == 'T') {
-			
-			// TODO RANDOM NEW POSITION METHOD CALLING HERE
-			
-			exploredMap[i][j].setType('T');
-			
-			if(!enemyZones.contains(exploredMap[i][j]))
-				enemyZones.add(exploredMap[i][j]);
-			
-			return false;
-		}
-		else if(Cave.getZones()[i][j].getType() == 'W') {
-			
-			// TODO SHE SHOULD HAVE FELT IT IN PROLOG...
-			
-			exploredMap[i][j].setType('W');
-			
-			if(!wallZones.contains(exploredMap[i][j]))
-				wallZones.add(exploredMap[i][j]);
-			
-			return false;
-		}
-		else if(Cave.getZones()[i][j].getType() == '.') {
-			exploredMap[i][j].setType('.');
-			
-			return true;
-		}
-		
-		System.err.println("INVALID VALUE INSIDE CAVE MATRIX READ BY KNOWN AREA");
-		System.exit(0);
-		return false;
+	public Zone[][] getExploredMap() {
+		return exploredMap;
 	}
 
 	public void paintComponent(Graphics g) {
@@ -231,7 +96,7 @@ public class KnownArea extends JPanel {
 				// Cave content "between" the walls
 				if(i != 0 && i != 13 && j != 0 && j != 13) {
 					
-					if(exploredMap[i][j].getType() == 'u') {
+					if(!exploredMap[i][j].isVisited()) {
 						try {
 							im = ImageIO.read(new File("img/possible_ground.png"));
 						} catch (IOException e) {
@@ -240,7 +105,7 @@ public class KnownArea extends JPanel {
 						}
 						g.drawImage(im, (int)xPos, (int)yPos, null);
 					}
-					else if(exploredMap[i][j].getType() == '.') {
+					else {
 						try {
 							im = ImageIO.read(new File("img/ground.png"));
 						} catch (IOException e) {
@@ -346,7 +211,10 @@ public class KnownArea extends JPanel {
 						
 							case 1:
 								try {
-									im = ImageIO.read(new File("img/samus_up.png"));
+									if(myZone.getSamus().getHealth() > 0)
+										im = ImageIO.read(new File("img/samus_up.png"));
+									else
+										im = ImageIO.read(new File("img/samus_up_dead.png"));
 								} catch (IOException e) {
 									System.out.println(e.getMessage());
 									System.exit(1);
@@ -355,7 +223,10 @@ public class KnownArea extends JPanel {
 								
 							case 2:
 								try {
-									im = ImageIO.read(new File("img/samus_down.png"));
+									if(myZone.getSamus().getHealth() > 0)
+										im = ImageIO.read(new File("img/samus_down.png"));
+									else
+										im = ImageIO.read(new File("img/samus_down_dead.png"));
 								} catch (IOException e) {
 									System.out.println(e.getMessage());
 									System.exit(1);
@@ -364,7 +235,10 @@ public class KnownArea extends JPanel {
 								
 							case 3:
 								try {
-									im = ImageIO.read(new File("img/samus_left.png"));
+									if(myZone.getSamus().getHealth() > 0)
+										im = ImageIO.read(new File("img/samus_left.png"));
+									else
+										im = ImageIO.read(new File("img/samus_left_dead.png"));
 								} catch (IOException e) {
 									System.out.println(e.getMessage());
 									System.exit(1);
@@ -373,7 +247,10 @@ public class KnownArea extends JPanel {
 								
 							case 4:
 								try {
-									im = ImageIO.read(new File("img/samus_right.png"));
+									if(myZone.getSamus().getHealth() > 0)
+										im = ImageIO.read(new File("img/samus_right.png"));
+									else
+										im = ImageIO.read(new File("img/samus_right_dead.png"));
 								} catch (IOException e) {
 									System.out.println(e.getMessage());
 									System.exit(1);

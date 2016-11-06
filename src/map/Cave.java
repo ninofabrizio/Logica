@@ -13,9 +13,17 @@ import java.util.concurrent.ThreadLocalRandom;
 import javax.imageio.ImageIO;
 import javax.swing.JPanel;
 
+import characters.Enemy;
 import characters.Samus;
 
 public class Cave extends JPanel {
+	
+	// TODO Dictionary for extra types:
+	// 'o' == gold taken
+	// 'h' == health taken
+	// 'p' == pirate (small enemy) killed
+	// 'm' == metroid (big enemy) killed
+	// 'r' == ridley (teleport) killed
 	
 	// Mind that our "real" map is 12x12, the extra rooms represent the walls
 	private static Zone caveMap[][] = new Zone[14][14];
@@ -74,10 +82,19 @@ public class Cave extends JPanel {
 					
 					caveMap[i][j].setSamus(new Samus(i, j, new KnownArea(zoneWidth, zoneHeight)));
 					samusZone = caveMap[i][j];
-					samusZone.getSamus().getKnownArea().setMyZone(caveMap[i][j]);
+					samusZone.getSamus().getKnownArea().getExploredMap()[i][j].setSamus(samusZone.getSamus());
+					samusZone.getSamus().getKnownArea().setMyZone(samusZone.getSamus().getKnownArea().getExploredMap()[i][j]);
+					samusZone.getSamus().getKnownArea().getMyZone().setVisited();
 				}
-				else
+				else {
 					caveMap[i][j].setSamus(null);
+					
+					if(caveMap[i][j].getType() == 'd' || caveMap[i][j].getType() == 'D'
+						|| caveMap[i][j].getType() == 'T')
+						caveMap[i][j].setEnemy(new Enemy(i,j));
+					else
+						caveMap[i][j].setEnemy(null);
+				}
 			}
 		}
 		
@@ -88,10 +105,8 @@ public class Cave extends JPanel {
 				System.out.print(caveMap[i][j].getType() + " ");
 			System.out.println();
 		}*/
-		
-		samusZone.getSamus().feelNeighbors();
 	}
-	
+
 	public void generateRandomMap() {
 		
 		for(int i = 0; i < 14; i++) {
@@ -110,7 +125,9 @@ public class Cave extends JPanel {
 					
 					caveMap[i][j].setSamus(new Samus(i, j, new KnownArea(zoneWidth, zoneHeight)));
 					samusZone = caveMap[i][j];
-					samusZone.getSamus().getKnownArea().setMyZone(caveMap[i][j]);
+					samusZone.getSamus().getKnownArea().getExploredMap()[i][j].setSamus(samusZone.getSamus());
+					samusZone.getSamus().getKnownArea().setMyZone(samusZone.getSamus().getKnownArea().getExploredMap()[i][j]);
+					samusZone.getSamus().getKnownArea().getMyZone().setVisited();
 				}
 				else
 					caveMap[i][j].setSamus(null);
@@ -124,6 +141,16 @@ public class Cave extends JPanel {
 		generateRandomPosition(3, 'U');
 		generateRandomPosition(3, 'O');
 		
+		for(int i = 0; i < 14; i++) {
+			for(int j = 0; j < 14; j++) {
+				if(caveMap[i][j].getType() == 'd' || caveMap[i][j].getType() == 'D'
+					|| caveMap[i][j].getType() == 'T')
+					caveMap[i][j].setEnemy(new Enemy(i,j));
+				else
+					caveMap[i][j].setEnemy(null);
+			}
+		}
+		
 		// TODO PRINT TEST
 		/*System.out.println("\nCAVE MAP:");
 		for(int i = 0; i < 14; i++) {
@@ -131,8 +158,6 @@ public class Cave extends JPanel {
 				System.out.print(caveMap[i][j].getType() + " ");
 			System.out.println();
 		}*/
-		
-		samusZone.getSamus().feelNeighbors();
 	}
 	
 	private void generateRandomPosition(int num, char type) {
@@ -160,33 +185,13 @@ public class Cave extends JPanel {
 				return true;
 			
 			// Checking farthest neighbors
-			if((i == 1 && j == 1) && (caveMap[i+2][j].getType() == type || caveMap[i][j+2].getType() == type))
+			if((i - 2 >= 0) && caveMap[i-2][j].getType() == type)
 				return true;
-			
-			if((i == 1 && (j >= 2 && j <= 11)) && (caveMap[i][j-2].getType() == type
-													|| caveMap[i+2][j].getType() == type || caveMap[i][j+2].getType() == type))
+			if((i + 2 <= 13) && caveMap[i+2][j].getType() == type)
 				return true;
-			
-			if((i == 1 && j == 12) && (caveMap[i][j-2].getType() == type || caveMap[i+2][j].getType() == type))
+			if((j - 2 >= 0) && caveMap[i][j-2].getType() == type)
 				return true;
-			
-			if(((i >= 2 && i <= 11) && j == 12) && (caveMap[i-2][j].getType() == type
-													|| caveMap[i][j-2].getType() == type || caveMap[i+2][j].getType() == type))
-				return true;
-			
-			if((i == 12 && j == 12) && (caveMap[i-2][j].getType() == type || caveMap[i][j-2].getType() == type))
-				return true;
-			
-			if((i == 12 &&(j >= 2 && j <= 11)) && (caveMap[i][j-2].getType() == type
-													|| caveMap[i-2][j].getType() == type || caveMap[i][j+2].getType() == type))
-				return true;
-			
-			if(((i >= 2 && i <= 11) && j == 1) && (caveMap[i-2][j].getType() == type
-													|| caveMap[i][j+2].getType() == type || caveMap[i+2][j].getType() == type))
-				return true;
-			
-			if(((i >= 2 && i <= 11) && (j >= 2 && j <= 11)) && (caveMap[i+2][j].getType() == type || caveMap[i-2][j].getType() == type 
-																|| caveMap[i][j+2].getType() == type || caveMap[i][j-2].getType() == type))
+			if((j + 2 <= 13) && caveMap[i][j+2].getType() == type)
 				return true;
 		//}
 			
@@ -248,7 +253,7 @@ public class Cave extends JPanel {
 						}
 						g.drawImage(im, (int)xPos, (int)yPos, null);
 					}
-					else if(caveMap[i][j].getType() == 'O') {
+					else if(caveMap[i][j].getType() == 'O' || caveMap[i][j].getType() == 'o') {
 						
 						try {
 							im = ImageIO.read(new File("img/gold.png"));
@@ -258,7 +263,7 @@ public class Cave extends JPanel {
 						}
 						g.drawImage(im, (int)xPos, (int)yPos, null);
 					}
-					else if(caveMap[i][j].getType() == 'U') {
+					else if(caveMap[i][j].getType() == 'U' || caveMap[i][j].getType() == 'h') {
 						
 						try {
 							im = ImageIO.read(new File("img/energy.png"));
@@ -268,7 +273,7 @@ public class Cave extends JPanel {
 						}
 						g.drawImage(im, (int)xPos, (int)yPos, null);
 					}
-					else if(caveMap[i][j].getType() == 'd') {
+					else if(caveMap[i][j].getType() == 'd' || caveMap[i][j].getType() == 'p') {
 						
 						try {
 							im = ImageIO.read(new File("img/pirate.png"));
@@ -278,7 +283,7 @@ public class Cave extends JPanel {
 						}
 						g.drawImage(im, (int)xPos, (int)yPos, null);
 					}
-					else if(caveMap[i][j].getType() == 'D') {
+					else if(caveMap[i][j].getType() == 'D' || caveMap[i][j].getType() == 'm') {
 						
 						try {
 							im = ImageIO.read(new File("img/metroid.png"));
@@ -288,7 +293,7 @@ public class Cave extends JPanel {
 						}
 						g.drawImage(im, (int)xPos, (int)yPos, null);
 					}
-					else if(caveMap[i][j].getType() == 'T') {
+					else if(caveMap[i][j].getType() == 'T' || caveMap[i][j].getType() == 'r') {
 						
 						try {
 							im = ImageIO.read(new File("img/ridley.png"));

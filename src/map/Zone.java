@@ -1,12 +1,14 @@
 package map;
 
+import characters.Enemy;
 import characters.Samus;
 
 public class Zone {
 
 	private char type;
 	private Samus samus;
-	private boolean zoneExplored = false;
+	private Enemy enemy;
+	private boolean visited = false;
     private int i, j;
     
 	public void setI(int i) {
@@ -25,8 +27,12 @@ public class Zone {
 		samus = s;
 	}
 	
-	public void setExplored(boolean condition) {
-		zoneExplored = condition;
+	public void setEnemy(Enemy e) {
+		enemy = e;
+	}
+	
+	public void setVisited() {
+		visited = true;
 	}
 	
 	public int getI() { 
@@ -45,7 +51,11 @@ public class Zone {
 		return samus;
 	}
 	
-	public boolean wasExplored() {
-		return zoneExplored;
+	public Enemy getEnemy() {
+		return enemy;
+	}
+	
+	public boolean isVisited() {
+		return visited;
 	}
 }
