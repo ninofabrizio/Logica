@@ -86,6 +86,8 @@ public class KnownArea extends JPanel {
 		double xPos, yPos;
 		int i, j;
 		
+		updateCorners();
+		
 		for(i = 0, yPos = 0.0; i < 14; i++, yPos += zoneHeight) {
 			for(j = 0, xPos = 0.0; j < 14; j++, xPos += zoneWidth) {
 				
@@ -131,12 +133,6 @@ public class KnownArea extends JPanel {
 						}
 						g.drawImage(im, (int)xPos, (int)yPos, null);
 					}
-					else if(exploredMap[i][j].getType() == 'p') {
-						
-						rt = new Rectangle2D.Double(xPos, yPos, zoneWidth, zoneHeight);
-						g2d.setPaint(Color.BLUE);
-						g2d.fill(rt);
-					}
 					else if(exploredMap[i][j].getType() == 'U') {
 						
 						try {
@@ -177,7 +173,13 @@ public class KnownArea extends JPanel {
 						}
 						g.drawImage(im, (int)xPos, (int)yPos, null);
 					}
-					else if(exploredMap[i][j].getType() == 'e') {
+					else if(exploredMap[i][j].isHoleDoubt()) {
+						
+						rt = new Rectangle2D.Double(xPos, yPos, zoneWidth, zoneHeight);
+						g2d.setPaint(Color.BLUE);
+						g2d.fill(rt);
+					}
+					else if(exploredMap[i][j].isDamageEnemyDoubt()) {
 						
 						try {
 							im = ImageIO.read(new File("img/possible_metroid.png"));
@@ -194,7 +196,7 @@ public class KnownArea extends JPanel {
 						}
 						g.drawImage(im, (int)xPos, (int)yPos, null);
 					}
-					else if(exploredMap[i][j].getType() == 'r') {
+					else if(exploredMap[i][j].isTeleportEnemyDoubt()) {
 						
 						try {
 							im = ImageIO.read(new File("img/possible_ridley.png"));
@@ -288,5 +290,17 @@ public class KnownArea extends JPanel {
 				}
 			}
 		}
+	}
+
+	private void updateCorners() {
+		
+		if(exploredMap[12][0].getType() == 'W' && exploredMap[13][2].getType() == 'W')
+			exploredMap[13][0].setType('W');
+		if(exploredMap[1][0].getType() == 'W' && exploredMap[0][1].getType() == 'W')
+			exploredMap[0][0].setType('W');
+		if(exploredMap[0][12].getType() == 'W' && exploredMap[1][13].getType() == 'W')
+			exploredMap[0][13].setType('W');
+		if(exploredMap[12][13].getType() == 'W' && exploredMap[13][12].getType() == 'W')
+			exploredMap[13][13].setType('W');
 	}
 }

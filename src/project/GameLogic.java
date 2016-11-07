@@ -27,6 +27,8 @@ public class GameLogic extends Thread {
 		Query q1 = new Query("consult", new Term[] { new Atom("logic.pl") });
 		q1.hasSolution();
 		
+		knownArea.getMyZone().setType('.');
+		
 		if(isSensationZone('p', 12, 1)) {
 			showDoubt('p', 12, 1);
 			
@@ -204,35 +206,96 @@ public class GameLogic extends Thread {
 	// Returns true if game has to stop
 	private boolean treatMovement(int posX, int posY) {
 
-		if(Cave.getZones()[posX][posY].getType() == 'O') {
-			
-			// TODO PUT GOLD SENSATION IN PROLOG, IF NOT ALREADY THERE
-			
-			knownArea.getMyZone().setType('O');
-		}
-		else if(Cave.getZones()[posX][posY].getType() == 'H') {
-			
-			// TODO PUT EXTRA HEALTH FACT IN PROLOG, IF NOT ALREADY THERE
-			
-			knownArea.getMyZone().setType('H');
-		}
-		else if(isSensationZone('e', posX, posY)) {
+		
+		if(isSensationZone('e', posX, posY)) {
 			
 			// TODO PUT DAMAGE MONSTER SENSATION IN PROLOG, IF NOT ALREADY THERE
 			
 			showDoubt('e', posX, posY);
 		}
-		else if(isSensationZone('p', posX, posY)) {
+		if(isSensationZone('p', posX, posY)) {
 			
 			// TODO PUT HOLE SENSATION IN PROLOG, IF NOT ALREADY THERE
 			
 			showDoubt('p', posX, posY);
 		}
-		else if(isSensationZone('r', posX, posY)) {
+		if(isSensationZone('r', posX, posY)) {
 			
 			// TODO PUT TELEPORT SENSATION IN PROLOG, IF NOT ALREADY THERE
 			
 			showDoubt('r', posX, posY);
+		}
+		
+		if(knownArea.getMyZone().isDamageEnemyDoubt()) {
+
+			knownArea.getMyZone().setDamageEnemyDoubt(false);
+			knownArea.getMyZone().setVisited();
+			
+			// TODO INFORM PROLOG THIS SENSATION IS GONE AND TELL WHAT'S THERE
+	
+			if(Cave.getZones()[posX][posY].getType() != 'd' && 
+					Cave.getZones()[posX][posY].getType() != 'D'  && countDoubts(posX, posY, 'e') == 1) {
+				
+				int lastDoubtX = getDoubtXPos(posX,posY,'e');
+				int lastDoubtY = getDoubtYPos(posX,posY,'e');
+				
+				if(Cave.getZones()[lastDoubtX][lastDoubtY].getType() == 'd')
+					knownArea.getExploredMap()[lastDoubtX][lastDoubtY].setType('d');
+				else if(Cave.getZones()[lastDoubtX][lastDoubtY].getType() == 'D')
+					knownArea.getExploredMap()[lastDoubtX][lastDoubtY].setType('D');
+				knownArea.getExploredMap()[lastDoubtX][lastDoubtY].setEnemy(Cave.getZones()[lastDoubtX][lastDoubtY].getEnemy());
+				
+				// TODO INFORM PROLOG THAT DANGER IS FOUND (LAST DOUBT IS DANGER)
+				
+			}
+		}else if(knownArea.getMyZone().isHoleDoubt()) {
+
+			knownArea.getMyZone().setHoleDoubt(false);
+			knownArea.getMyZone().setVisited();
+			
+			// TODO INFORM PROLOG THIS SENSATION IS GONE
+	
+			if(Cave.getZones()[posX][posY].getType() != 'P' && countDoubts(posX, posY, 'p') == 1) {
+				
+				int lastDoubtX = getDoubtXPos(posX,posY,'p');
+				int lastDoubtY = getDoubtYPos(posX,posY,'p');
+				
+				knownArea.getExploredMap()[lastDoubtX][lastDoubtY].setType('P');
+				
+				// TODO INFORM PROLOG THAT DANGER IS FOUND (LAST DOUBT IS DANGER)
+				
+			}
+		}else if(knownArea.getMyZone().isTeleportEnemyDoubt()) {
+
+			knownArea.getMyZone().setTeleportEnemyDoubt(false);
+			knownArea.getMyZone().setVisited();
+			
+			// TODO INFORM PROLOG THIS SENSATION IS GONE
+	
+			if(Cave.getZones()[posX][posY].getType() != 'T' && countDoubts(posX, posY, 'r') == 1) {
+				
+				int lastDoubtX = getDoubtXPos(posX,posY,'r');
+				int lastDoubtY = getDoubtYPos(posX,posY,'r');
+				
+				knownArea.getExploredMap()[lastDoubtX][lastDoubtY].setType('T');
+				knownArea.getExploredMap()[lastDoubtX][lastDoubtY].setEnemy(Cave.getZones()[lastDoubtX][lastDoubtY].getEnemy());
+				
+				// TODO INFORM PROLOG THAT DANGER IS FOUND (LAST DOUBT IS DANGER)
+				
+			}
+		}
+		
+		if(Cave.getZones()[posX][posY].getType() == 'O') {
+			
+			// TODO PUT GOLD SENSATION IN PROLOG
+			
+			knownArea.getMyZone().setType('O');
+		}
+		else if(Cave.getZones()[posX][posY].getType() == 'U') {
+			
+			// TODO PUT EXTRA HEALTH FACT IN PROLOG, IF NOT ALREADY THERE
+			
+			knownArea.getMyZone().setType('U');
 		}
 		else if(Cave.getZones()[posX][posY].getType() == 'P') {
 			
@@ -245,6 +308,8 @@ public class GameLogic extends Thread {
 			if(knownArea.getMyZone().getType() != 'P')
 				knownArea.getMyZone().setType('P');
 			
+			knownArea.getMyZone().setVisited();
+			knownArea.getMyZone().setHoleDoubt(false);
 			updateDoubts(posX, posY, 'p');
 			
 			knownArea.repaint();
@@ -273,6 +338,8 @@ public class GameLogic extends Thread {
 															Integer.toString(knownArea.getMyZone().getSamus().getActionsTaken()));
 			knownArea.getMyZone().getSamus().setHealth(knownArea.getMyZone().getSamus().getHealth() - d);
 			
+			knownArea.getMyZone().setVisited();
+			knownArea.getMyZone().setDamageEnemyDoubt(false);
 			updateDoubts(posX, posY, 'e');
 			
 			if(knownArea.getMyZone().getSamus().getHealth() <= 0) {
@@ -306,6 +373,8 @@ public class GameLogic extends Thread {
 				knownArea.getMyZone().setEnemy(Cave.getZones()[posX][posY].getEnemy());
 			}
 			
+			knownArea.getMyZone().setVisited();
+			knownArea.getMyZone().setTeleportEnemyDoubt(false);
 			updateDoubts(posX, posY, 'r');
 			
 			knownArea.getMyZone().getEnemy().generateRandomPosition(knownArea.getMyZone());
@@ -332,7 +401,10 @@ public class GameLogic extends Thread {
 			
 			// TODO INFORM PROLOG ABOUT WALL SENSATION, IF IT'S NOT A FACT ALREADY
 			// TELL PROLOG TO GET BACK TO LAST POSITION
+			
 		}
+		else
+			knownArea.getMyZone().setType('.');
 		
 		knownArea.repaint();
 		return false;
@@ -341,36 +413,259 @@ public class GameLogic extends Thread {
 	// This method put doubts into the known area matrix
 	private void showDoubt(char c, int posX, int posY) {
 
-		if(knownArea.getExploredMap()[posX+1][posY].getType() == 'u')
-			knownArea.getExploredMap()[posX+1][posY].setType(c);
-		if(knownArea.getExploredMap()[posX-1][posY].getType() == 'u')
-			knownArea.getExploredMap()[posX-1][posY].setType(c);
-		if(knownArea.getExploredMap()[posX][posY-1].getType() == 'u')
-			knownArea.getExploredMap()[posX][posY-1].setType(c);
-		if(knownArea.getExploredMap()[posX][posY+1].getType() == 'u')
-			knownArea.getExploredMap()[posX][posY+1].setType(c);
+		if((c == 'e' && (knownArea.getExploredMap()[posX + 1][posY].getType() != 'd' && knownArea.getExploredMap()[posX - 1][posY].getType() != 'd'
+						&& knownArea.getExploredMap()[posX][posY + 1].getType() != 'd' && knownArea.getExploredMap()[posX][posY - 1].getType() != 'd'
+						&& knownArea.getExploredMap()[posX + 1][posY].getType() != 'D' && knownArea.getExploredMap()[posX - 1][posY].getType() != 'D'
+						&& knownArea.getExploredMap()[posX][posY + 1].getType() != 'D' && knownArea.getExploredMap()[posX][posY - 1].getType() != 'D'))
+			|| (c == 'p' && (knownArea.getExploredMap()[posX + 1][posY].getType() != 'P' && knownArea.getExploredMap()[posX - 1][posY].getType() != 'P'
+							&& knownArea.getExploredMap()[posX][posY + 1].getType() != 'P' && knownArea.getExploredMap()[posX][posY - 1].getType() != 'P'))
+			|| (c == 'r' && (knownArea.getExploredMap()[posX + 1][posY].getType() != 'T' && knownArea.getExploredMap()[posX - 1][posY].getType() != 'T'
+							&& knownArea.getExploredMap()[posX][posY + 1].getType() != 'T' && knownArea.getExploredMap()[posX][posY - 1].getType() != 'T'))){
+			if (/*posX+1 < 13 && */knownArea.getExploredMap()[posX + 1][posY].isVisited() == false) {
+				if(c == 'e')
+					knownArea.getExploredMap()[posX + 1][posY].setDamageEnemyDoubt(true);
+				else if(c == 'p')
+					knownArea.getExploredMap()[posX + 1][posY].setHoleDoubt(true);
+				else
+					knownArea.getExploredMap()[posX + 1][posY].setTeleportEnemyDoubt(true);
+			}
+			if (/*posX-1 > 0 && */knownArea.getExploredMap()[posX - 1][posY].isVisited() == false) {
+				if(c == 'e')
+					knownArea.getExploredMap()[posX - 1][posY].setDamageEnemyDoubt(true);
+				else if(c == 'p')
+					knownArea.getExploredMap()[posX - 1][posY].setHoleDoubt(true);
+				else
+					knownArea.getExploredMap()[posX - 1][posY].setTeleportEnemyDoubt(true);
+			}
+			if (/*posY-1 > 0 && */knownArea.getExploredMap()[posX][posY - 1].isVisited() == false) {
+				if(c == 'e')
+					knownArea.getExploredMap()[posX][posY - 1].setDamageEnemyDoubt(true);
+				else if(c == 'p')
+					knownArea.getExploredMap()[posX][posY - 1].setHoleDoubt(true);
+				else
+					knownArea.getExploredMap()[posX][posY - 1].setTeleportEnemyDoubt(true);
+			}
+			if (/*posY+1 < 13 && */knownArea.getExploredMap()[posX][posY + 1].isVisited() == false) {
+				if(c == 'e')
+					knownArea.getExploredMap()[posX][posY + 1].setDamageEnemyDoubt(true);
+				else if(c == 'p')
+					knownArea.getExploredMap()[posX][posY + 1].setHoleDoubt(true);
+				else
+					knownArea.getExploredMap()[posX][posY + 1].setTeleportEnemyDoubt(true);
+			}
+		}
 	}
 
 	// This method clears doubts from the known area matrix
 	private void updateDoubts(int i, int j, char type) {
+
+		if(type == 'e') {
+			if (knownArea.getExploredMap()[i + 1][j + 1].isDamageEnemyDoubt())
+				knownArea.getExploredMap()[i + 1][j + 1].setDamageEnemyDoubt(false);
+			if (knownArea.getExploredMap()[i - 1][j + 1].isDamageEnemyDoubt())
+				knownArea.getExploredMap()[i - 1][j + 1].setDamageEnemyDoubt(false);
+			if (knownArea.getExploredMap()[i - 1][j - 1].isDamageEnemyDoubt())
+				knownArea.getExploredMap()[i - 1][j - 1].setDamageEnemyDoubt(false);
+			if (knownArea.getExploredMap()[i + 1][j - 1].isDamageEnemyDoubt())
+				knownArea.getExploredMap()[i + 1][j - 1].setDamageEnemyDoubt(false);
+
+			if ((i - 2 >= 0) && knownArea.getExploredMap()[i - 2][j].isDamageEnemyDoubt())
+				knownArea.getExploredMap()[i - 2][j].setDamageEnemyDoubt(false);
+			if ((i + 2 <= 13) && knownArea.getExploredMap()[i + 2][j].isDamageEnemyDoubt())
+				knownArea.getExploredMap()[i + 2][j].setDamageEnemyDoubt(false);
+			if ((j - 2 >= 0) && knownArea.getExploredMap()[i][j - 2].isDamageEnemyDoubt())
+				knownArea.getExploredMap()[i][j - 2].setDamageEnemyDoubt(false);
+			if ((j + 2 <= 13) && knownArea.getExploredMap()[i][j + 2].isDamageEnemyDoubt())
+				knownArea.getExploredMap()[i][j + 2].setDamageEnemyDoubt(false);
+		}
+		else if(type == 'p') {
+			if (knownArea.getExploredMap()[i + 1][j + 1].isHoleDoubt())
+				knownArea.getExploredMap()[i + 1][j + 1].setHoleDoubt(false);
+			if (knownArea.getExploredMap()[i - 1][j + 1].isHoleDoubt())
+				knownArea.getExploredMap()[i - 1][j + 1].setHoleDoubt(false);
+			if (knownArea.getExploredMap()[i - 1][j - 1].isHoleDoubt())
+				knownArea.getExploredMap()[i - 1][j - 1].setHoleDoubt(false);
+			if (knownArea.getExploredMap()[i + 1][j - 1].isHoleDoubt())
+				knownArea.getExploredMap()[i + 1][j - 1].setHoleDoubt(false);
+
+			if ((i - 2 >= 0) && knownArea.getExploredMap()[i - 2][j].isHoleDoubt())
+				knownArea.getExploredMap()[i - 2][j].setHoleDoubt(false);
+			if ((i + 2 <= 13) && knownArea.getExploredMap()[i + 2][j].isHoleDoubt())
+				knownArea.getExploredMap()[i + 2][j].setHoleDoubt(false);
+			if ((j - 2 >= 0) && knownArea.getExploredMap()[i][j - 2].isHoleDoubt())
+				knownArea.getExploredMap()[i][j - 2].setHoleDoubt(false);
+			if ((j + 2 <= 13) && knownArea.getExploredMap()[i][j + 2].isHoleDoubt())
+				knownArea.getExploredMap()[i][j + 2].setHoleDoubt(false);
+		}
+		else {
+			if (knownArea.getExploredMap()[i + 1][j + 1].isTeleportEnemyDoubt())
+				knownArea.getExploredMap()[i + 1][j + 1].setTeleportEnemyDoubt(false);
+			if (knownArea.getExploredMap()[i - 1][j + 1].isTeleportEnemyDoubt())
+				knownArea.getExploredMap()[i - 1][j + 1].setTeleportEnemyDoubt(false);
+			if (knownArea.getExploredMap()[i - 1][j - 1].isTeleportEnemyDoubt())
+				knownArea.getExploredMap()[i - 1][j - 1].setTeleportEnemyDoubt(false);
+			if (knownArea.getExploredMap()[i + 1][j - 1].isTeleportEnemyDoubt())
+				knownArea.getExploredMap()[i + 1][j - 1].setTeleportEnemyDoubt(false);
+
+			if ((i - 2 >= 0) && knownArea.getExploredMap()[i - 2][j].isTeleportEnemyDoubt())
+				knownArea.getExploredMap()[i - 2][j].setTeleportEnemyDoubt(false);
+			if ((i + 2 <= 13) && knownArea.getExploredMap()[i + 2][j].isTeleportEnemyDoubt())
+				knownArea.getExploredMap()[i + 2][j].setTeleportEnemyDoubt(false);
+			if ((j - 2 >= 0) && knownArea.getExploredMap()[i][j - 2].isTeleportEnemyDoubt())
+				knownArea.getExploredMap()[i][j - 2].setTeleportEnemyDoubt(false);
+			if ((j + 2 <= 13) && knownArea.getExploredMap()[i][j + 2].isTeleportEnemyDoubt())
+				knownArea.getExploredMap()[i][j + 2].setTeleportEnemyDoubt(false);
+		}
+	}
+	
+	// This method checks how many doubts remain in a neighborhood
+	private int countDoubts(int i, int j, char type) {
 		
-		if(knownArea.getExploredMap()[i+1][j+1].getType() == type)
-			knownArea.getExploredMap()[i+1][j+1].setType('u');
-		if(knownArea.getExploredMap()[i-1][j+1].getType() == type)
-			knownArea.getExploredMap()[i-1][j+1].setType('u');
-		if(knownArea.getExploredMap()[i-1][j-1].getType() == type)
-			knownArea.getExploredMap()[i-1][j-1].setType('u');
-		if(knownArea.getExploredMap()[i+1][j-1].getType() == type)
-			knownArea.getExploredMap()[i+1][j-1].setType('u');
+		int count = 0;
 		
-		if((i - 2 >= 0) && knownArea.getExploredMap()[i-2][j].getType() == type)
-			knownArea.getExploredMap()[i-2][j].setType('u');
-		if((i + 2 <= 13) && knownArea.getExploredMap()[i+2][j].getType() == type)
-			knownArea.getExploredMap()[i+2][j].setType('u');
-		if((j - 2 >= 0) && knownArea.getExploredMap()[i][j-2].getType() == type)
-			knownArea.getExploredMap()[i][j-2].setType('u');
-		if((j + 2 <= 13) && knownArea.getExploredMap()[i][j+2].getType() == type)
-			knownArea.getExploredMap()[i][j+2].setType('u');
+		if(type == 'e') {
+			if (knownArea.getExploredMap()[i + 1][j + 1].isDamageEnemyDoubt())
+				count++;
+			if (knownArea.getExploredMap()[i - 1][j + 1].isDamageEnemyDoubt())
+				count++;
+			if (knownArea.getExploredMap()[i - 1][j - 1].isDamageEnemyDoubt())
+				count++;
+			if (knownArea.getExploredMap()[i + 1][j - 1].isDamageEnemyDoubt())
+				count++;
+
+			if ((i - 2 >= 0) && knownArea.getExploredMap()[i - 2][j].isDamageEnemyDoubt())
+				count++;
+			if ((i + 2 <= 13) && knownArea.getExploredMap()[i + 2][j].isDamageEnemyDoubt())
+				count++;
+			if ((j - 2 >= 0) && knownArea.getExploredMap()[i][j - 2].isDamageEnemyDoubt())
+				count++;
+			if ((j + 2 <= 13) && knownArea.getExploredMap()[i][j + 2].isDamageEnemyDoubt())
+				count++;
+		}
+		else if(type == 'p') {
+			if (knownArea.getExploredMap()[i + 1][j + 1].isHoleDoubt())
+				count++;
+			if (knownArea.getExploredMap()[i - 1][j + 1].isHoleDoubt())
+				count++;
+			if (knownArea.getExploredMap()[i - 1][j - 1].isHoleDoubt())
+				count++;
+			if (knownArea.getExploredMap()[i + 1][j - 1].isHoleDoubt())
+				count++;
+
+			if ((i - 2 >= 0) && knownArea.getExploredMap()[i - 2][j].isHoleDoubt())
+				count++;
+			if ((i + 2 <= 13) && knownArea.getExploredMap()[i + 2][j].isHoleDoubt())
+				count++;
+			if ((j - 2 >= 0) && knownArea.getExploredMap()[i][j - 2].isHoleDoubt())
+				count++;
+			if ((j + 2 <= 13) && knownArea.getExploredMap()[i][j + 2].isHoleDoubt())
+				count++;
+		}
+		else {
+			if (knownArea.getExploredMap()[i + 1][j + 1].isTeleportEnemyDoubt())
+				count++;
+			if (knownArea.getExploredMap()[i - 1][j + 1].isTeleportEnemyDoubt())
+				count++;
+			if (knownArea.getExploredMap()[i - 1][j - 1].isTeleportEnemyDoubt())
+				count++;
+			if (knownArea.getExploredMap()[i + 1][j - 1].isTeleportEnemyDoubt())
+				count++;
+
+			if ((i - 2 >= 0) && knownArea.getExploredMap()[i - 2][j].isTeleportEnemyDoubt())
+				count++;
+			if ((i + 2 <= 13) && knownArea.getExploredMap()[i + 2][j].isTeleportEnemyDoubt())
+				count++;
+			if ((j - 2 >= 0) && knownArea.getExploredMap()[i][j - 2].isTeleportEnemyDoubt())
+				count++;
+			if ((j + 2 <= 13) && knownArea.getExploredMap()[i][j + 2].isTeleportEnemyDoubt())
+				count++;
+		}
+		
+		return count;
+	}
+	
+	private int getDoubtXPos(int i, int j, char type) {
+		
+		if(type == 'e') {
+			if(knownArea.getExploredMap()[i+1][j+1].isDamageEnemyDoubt() || knownArea.getExploredMap()[i+1][j-1].isDamageEnemyDoubt())
+				return i+1;
+			if(knownArea.getExploredMap()[i-1][j+1].isDamageEnemyDoubt() || knownArea.getExploredMap()[i-1][j-1].isDamageEnemyDoubt())
+				return i-1;
+			if((i - 2 >= 0) && knownArea.getExploredMap()[i-2][j].isDamageEnemyDoubt())
+				return i-2;
+			if((i + 2 <= 13) && knownArea.getExploredMap()[i+2][j].isDamageEnemyDoubt())
+				return i+2;
+			if(((j - 2 >= 0) && knownArea.getExploredMap()[i][j-2].isDamageEnemyDoubt()) || ((j + 2 <= 13) && knownArea.getExploredMap()[i][j+2].isDamageEnemyDoubt()))
+				return i;
+		}
+		else if(type == 'p') {
+			if(knownArea.getExploredMap()[i+1][j+1].isHoleDoubt() || knownArea.getExploredMap()[i+1][j-1].isHoleDoubt())
+				return i+1;
+			if(knownArea.getExploredMap()[i-1][j+1].isHoleDoubt() || knownArea.getExploredMap()[i-1][j-1].isHoleDoubt())
+				return i-1;
+			if((i - 2 >= 0) && knownArea.getExploredMap()[i-2][j].isHoleDoubt())
+				return i-2;
+			if((i + 2 <= 13) && knownArea.getExploredMap()[i+2][j].isHoleDoubt())
+				return i+2;
+			if(((j - 2 >= 0) && knownArea.getExploredMap()[i][j-2].isHoleDoubt()) || ((j + 2 <= 13) && knownArea.getExploredMap()[i][j+2].isHoleDoubt()))
+				return i;
+		}
+		else {
+			if(knownArea.getExploredMap()[i+1][j+1].isTeleportEnemyDoubt() || knownArea.getExploredMap()[i+1][j-1].isTeleportEnemyDoubt())
+				return i+1;
+			if(knownArea.getExploredMap()[i-1][j+1].isTeleportEnemyDoubt() || knownArea.getExploredMap()[i-1][j-1].isTeleportEnemyDoubt())
+				return i-1;
+			if((i - 2 >= 0) && knownArea.getExploredMap()[i-2][j].isTeleportEnemyDoubt())
+				return i-2;
+			if((i + 2 <= 13) && knownArea.getExploredMap()[i+2][j].isTeleportEnemyDoubt())
+				return i+2;
+			if(((j - 2 >= 0) && knownArea.getExploredMap()[i][j-2].isTeleportEnemyDoubt()) || ((j + 2 <= 13) && knownArea.getExploredMap()[i][j+2].isTeleportEnemyDoubt()))
+				return i;
+		}
+		// If this is returned, something's wrong
+		return -1;
+	}
+	
+	private int getDoubtYPos(int i, int j, char type) {
+
+		if(type == 'e') {
+			if(knownArea.getExploredMap()[i+1][j+1].isDamageEnemyDoubt() || knownArea.getExploredMap()[i-1][j+1].isDamageEnemyDoubt())
+				return j+1;
+			if(knownArea.getExploredMap()[i+1][j-1].isDamageEnemyDoubt() || knownArea.getExploredMap()[i-1][j-1].isDamageEnemyDoubt())
+				return j-1;
+			if(((i - 2 >= 0) && knownArea.getExploredMap()[i-2][j].isDamageEnemyDoubt()) || ((i + 2 <= 13) && knownArea.getExploredMap()[i+2][j].isDamageEnemyDoubt()))
+				return j;
+			if((j - 2 >= 0) && knownArea.getExploredMap()[i][j-2].isDamageEnemyDoubt())
+				return j-2;
+			if((j + 2 <= 13) && knownArea.getExploredMap()[i][j+2].isDamageEnemyDoubt())
+				return j+2;
+		}
+		else if(type == 'p') {
+			if(knownArea.getExploredMap()[i+1][j+1].isHoleDoubt() || knownArea.getExploredMap()[i-1][j+1].isHoleDoubt())
+				return j+1;
+			if(knownArea.getExploredMap()[i+1][j-1].isHoleDoubt() || knownArea.getExploredMap()[i-1][j-1].isHoleDoubt())
+				return j-1;
+			if(((i - 2 >= 0) && knownArea.getExploredMap()[i-2][j].isHoleDoubt()) || ((i + 2 <= 13) && knownArea.getExploredMap()[i+2][j].isHoleDoubt()))
+				return j;
+			if((j - 2 >= 0) && knownArea.getExploredMap()[i][j-2].isHoleDoubt())
+				return j-2;
+			if((j + 2 <= 13) && knownArea.getExploredMap()[i][j+2].isHoleDoubt())
+				return j+2;
+		}
+		else {
+			if(knownArea.getExploredMap()[i+1][j+1].isTeleportEnemyDoubt() || knownArea.getExploredMap()[i-1][j+1].isTeleportEnemyDoubt())
+				return j+1;
+			if(knownArea.getExploredMap()[i+1][j-1].isTeleportEnemyDoubt() || knownArea.getExploredMap()[i-1][j-1].isTeleportEnemyDoubt())
+				return j-1;
+			if(((i - 2 >= 0) && knownArea.getExploredMap()[i-2][j].isTeleportEnemyDoubt()) || ((i + 2 <= 13) && knownArea.getExploredMap()[i+2][j].isTeleportEnemyDoubt()))
+				return j;
+			if((j - 2 >= 0) && knownArea.getExploredMap()[i][j-2].isTeleportEnemyDoubt())
+				return j-2;
+			if((j + 2 <= 13) && knownArea.getExploredMap()[i][j+2].isTeleportEnemyDoubt())
+				return j+2;
+		}
+		// If this is returned, something's wrong
+		return -1;
 	}
 	
 	// This method says if the area shot has an enemy
