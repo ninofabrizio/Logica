@@ -6,10 +6,13 @@ import java.util.Map;
 
 import map.Cave;
 import map.KnownArea;
+import map.Zone;
 
 import org.jpl7.Atom;
 import org.jpl7.Query;
 import org.jpl7.Term;
+
+import characters.Enemy;
 
 public class GameLogic extends Thread {
 
@@ -30,22 +33,22 @@ public class GameLogic extends Thread {
 		knownArea.getMyZone().setType('.');
 		
 		if(isSensationZone('p', 12, 1)) {
-			showDoubt('p', 12, 1);
+			//showDoubt('p', 12, 1);
 			
 			// TODO INFORM SENSATION TO PROLOG
-			
+			sendKnowledgeToProlog(13-12,1,"breeze([",".");
 		}
 		if(isSensationZone('e', 12, 1)) {
-			showDoubt('e', 12, 1);
+			//showDoubt('e', 12, 1);
 			
 			// TODO INFORM SENSATION TO PROLOG
-			
+			sendKnowledgeToProlog(13-12,1,"sound([",".");
 		}
 		if(isSensationZone('r', 12, 1)) {
-			showDoubt('r', 12, 1);
+			//showDoubt('r', 12, 1);
 			
 			// TODO INFORM SENSATION TO PROLOG
-			
+			sendKnowledgeToProlog(13-12,1,"flash([",".");
 		}
 
 		while(true) {
@@ -66,7 +69,7 @@ public class GameLogic extends Thread {
 				// For every solution returned by prolog
 				for (int i = 0; i < solution.length; i++) {
 
-					System.out.println("X" + i + " = " + solution[i].get("X").toString() + "\n");
+					System.out.println("X" + " = " + solution[i].get("X").toString() + "\n");
 					// System.out.println("X length = " + solution[i].get("X").listLength());
 					// System.out.println(solution[i].get("X").arg(2).arg(2).arg(2).toString());
 
@@ -133,7 +136,13 @@ public class GameLogic extends Thread {
 					
 				knownArea.getMyZone().getSamus().setAmmo(ammo);
 				WindowMaker.setAmmoPanelValue(knownArea.getMyZone().getSamus().getAmmo());
-					
+				
+				getKnowledgeFromProlog("danger");
+				getKnowledgeFromProlog("sound");
+				getKnowledgeFromProlog("flash");
+				getKnowledgeFromProlog("breeze");
+				getKnowledgeFromProlog("visited");
+				
 				if (action == 'G') {
 					knownArea.getMyZone().setType('.');
 					
@@ -176,11 +185,11 @@ public class GameLogic extends Thread {
 							Cave.getZones()[enemyX][enemyY].setEnemy(null);
 							knownArea.getExploredMap()[enemyX][enemyY].setEnemy(null);
 							
-							updateDoubts(posX, posY, doubt);
+							//updateDoubts(posX, posY, doubt);
 							
 							// TODO INFORM PROLOG SCREAM SENSATION
 							// PROLOG SHOULD UPDATE DANGERS AND/OR DOUBTS
-							
+							sendKnowledgeToProlog(13-posX,posY,"scream([",".");
 						}
 					}
 				}
@@ -194,6 +203,10 @@ public class GameLogic extends Thread {
 					break;
 				}
 			}
+			else {
+				System.err.println("JAVA -> PROLOG COMMUNICATION PROBLEM");
+				System.exit(1);
+			}
 
 			try {
 				sleep(waitTime);
@@ -203,27 +216,179 @@ public class GameLogic extends Thread {
 		}
 	}
 
+	private void getKnowledgeFromProlog(String string) {
+		
+		int posX, posY;
+		char type;
+		
+		String command = null;
+		
+		if(string.contains("danger"))
+			command = string.concat("([I | J], T)");
+		else
+			command = string.concat("([I | J])");
+		
+		Query q2 = new Query(command);
+		
+		Map<String, Term>[] solution = q2.allSolutions();
+		
+		if (solution != null) {
+			
+			
+			
+			if(solution.length == 0) {
+				System.out.println(q2.toString());
+				System.out.println("EMPTY SOLUTION\n");
+			}
+			
+			for(int i = 0; i < solution.length; i++) {
+				
+				System.out.println(q2.toString());
+				System.out.println("I" + " = " + solution[i].get("I").toString());
+				System.out.println("J" + " = " + solution[i].get("J").toString());
+				
+				posX = Integer.parseInt(solution[i].get("I").toString());
+				posY = Integer.parseInt(solution[i].get("J").toString());
+				
+				posX = 13 - posX;
+				
+				if(string.contains("danger")) {
+					
+					System.out.println("T" + " = " + solution[i].get("T").toString() + "\n");
+					
+					type = solution[i].get("T").toString().charAt(1);
+					
+					if(type == 'P'){
+						knownArea.getExploredMap()[posX][posY] = new Zone();
+						knownArea.getExploredMap()[posX][posY].setType('P');
+					}	
+					else if(type == 'd') {
+						knownArea.getExploredMap()[posX][posY] = new Zone();
+						knownArea.getExploredMap()[posX][posY].setType('d');
+						knownArea.getExploredMap()[posX][posY].setEnemy(new Enemy(posX,posY));
+					}
+					else if(type == 'D') {
+						knownArea.getExploredMap()[posX][posY] = new Zone();
+						knownArea.getExploredMap()[posX][posY].setType('D');
+						knownArea.getExploredMap()[posX][posY].setEnemy(new Enemy(posX,posY));
+					}
+					else if(type == 'T') {
+						knownArea.getExploredMap()[posX][posY] = new Zone();
+						knownArea.getExploredMap()[posX][posY].setType('T');
+						knownArea.getExploredMap()[posX][posY].setEnemy(new Enemy(posX,posY));
+					}		
+				}
+				else {
+					
+					System.out.println();
+					
+					if(string.contains("sound"))
+						knownArea.getExploredMap()[posX][posY].setStepSounds(true);
+					else if(string.contains("flash"))
+						knownArea.getExploredMap()[posX][posY].setFlash(true);
+					else if(string.contains("breeze"))
+						knownArea.getExploredMap()[posX][posY].setBreeze(true);
+					else if(string.contains("visited"))
+						knownArea.getExploredMap()[posX][posY].setVisited();
+				}
+			}
+		}
+		else {
+			System.err.println("JAVA -> PROLOG COMMUNICATION PROBLEM");
+			System.exit(1);
+		}
+	}
+
+	// Here we create facts in our prolog file
+	private void sendKnowledgeToProlog(int i, int j, String name, String type) {
+		
+		Query q2 = null;
+		
+		if(name.contains("danger")) {
+			
+			String command = new String("retract(").concat(name);
+			command = command.concat(Integer.toString(i));
+			command = command.concat("|");
+			command = command.concat(Integer.toString(j));
+			command = command.concat("],'");
+			command = command.concat(type);
+			command = command.concat("'))");
+			System.out.println(command);
+			q2 = new Query(command);
+			
+			command = new String("assert(").concat(name);
+			command = command.concat(Integer.toString(i));
+			command = command.concat("|");
+			command = command.concat(Integer.toString(j));
+			command = command.concat("],'");
+			command = command.concat(type);
+			command = command.concat("'))");
+			
+			
+			
+			q2 = new Query(command);
+		}
+		else if(name.contains("samus")) {
+			
+			q2 = new Query("retract(samus(_,_,_,_,_))");
+			
+			String command = new String("assert(").concat(name);
+			command = command.concat(Integer.toString(13-knownArea.getMyZone().getSamus().getI()));
+			command = command.concat("|");
+			command = command.concat(Integer.toString(knownArea.getMyZone().getSamus().getJ()));
+			command = command.concat("],");
+			command = command.concat(Integer.toString(knownArea.getMyZone().getSamus().getDirection()));
+			command = command.concat(",");
+			command = command.concat(Integer.toString(knownArea.getMyZone().getSamus().getHealth()));
+			command = command.concat(",");
+			command = command.concat(Integer.toString(knownArea.getMyZone().getSamus().getAmmo()));
+			command = command.concat(",");
+			command = command.concat(Integer.toString(knownArea.getMyZone().getSamus().getScore()));
+			command = command.concat("))");
+			
+			q2 = new Query(command);
+		}
+		else{
+			String command = new String("assert(").concat(name);
+			command = command.concat(Integer.toString(i));
+			command = command.concat("|");
+			command = command.concat(Integer.toString(j));
+			command = command.concat("]))");
+		
+			q2 = new Query(command);
+		}
+		
+		if(q2.allSolutions() == null) {
+			System.err.println("JAVA -> PROLOG COMMUNICATION PROBLEM");
+			System.exit(1);
+		}
+		
+		System.out.println(q2.toString() + "\n");
+	}
+
 	// Returns true if game has to stop
 	private boolean treatMovement(int posX, int posY) {
-
 		
-		if(isSensationZone('e', posX, posY)) {
+		if((posX > 0 && posX < 13) && (posY > 0 && posY < 13) && isSensationZone('e', posX, posY)) {
 			
 			// TODO PUT DAMAGE MONSTER SENSATION IN PROLOG, IF NOT ALREADY THERE
+			sendKnowledgeToProlog(13-posX,posY,"sound([",".");
 			
-			showDoubt('e', posX, posY);
+			//showDoubt('e', posX, posY);
 		}
-		if(isSensationZone('p', posX, posY)) {
+		if((posX > 0 && posX < 13) && (posY > 0 && posY < 13) && isSensationZone('p', posX, posY)) {
 			
 			// TODO PUT HOLE SENSATION IN PROLOG, IF NOT ALREADY THERE
+			sendKnowledgeToProlog(13-posX,posY,"breeze([",".");
 			
-			showDoubt('p', posX, posY);
+			//showDoubt('p', posX, posY);
 		}
-		if(isSensationZone('r', posX, posY)) {
+		if((posX > 0 && posX < 13) && (posY > 0 && posY < 13) && isSensationZone('r', posX, posY)) {
 			
 			// TODO PUT TELEPORT SENSATION IN PROLOG, IF NOT ALREADY THERE
+			sendKnowledgeToProlog(13-posX,posY,"flash([",".");
 			
-			showDoubt('r', posX, posY);
+			//showDoubt('r', posX, posY);
 		}
 		
 		if(knownArea.getMyZone().isDamageEnemyDoubt()) {
@@ -233,7 +398,7 @@ public class GameLogic extends Thread {
 			
 			// TODO INFORM PROLOG THIS SENSATION IS GONE AND TELL WHAT'S THERE
 	
-			if(Cave.getZones()[posX][posY].getType() != 'd' && 
+			/*if(Cave.getZones()[posX][posY].getType() != 'd' && 
 					Cave.getZones()[posX][posY].getType() != 'D'  && countDoubts(posX, posY, 'e') == 1) {
 				
 				int lastDoubtX = getDoubtXPos(posX,posY,'e');
@@ -247,7 +412,7 @@ public class GameLogic extends Thread {
 				
 				// TODO INFORM PROLOG THAT DANGER IS FOUND (LAST DOUBT IS DANGER)
 				
-			}
+			}*/
 		}else if(knownArea.getMyZone().isHoleDoubt()) {
 
 			knownArea.getMyZone().setHoleDoubt(false);
@@ -255,7 +420,7 @@ public class GameLogic extends Thread {
 			
 			// TODO INFORM PROLOG THIS SENSATION IS GONE
 	
-			if(Cave.getZones()[posX][posY].getType() != 'P' && countDoubts(posX, posY, 'p') == 1) {
+			/*if(Cave.getZones()[posX][posY].getType() != 'P' && countDoubts(posX, posY, 'p') == 1) {
 				
 				int lastDoubtX = getDoubtXPos(posX,posY,'p');
 				int lastDoubtY = getDoubtYPos(posX,posY,'p');
@@ -264,7 +429,7 @@ public class GameLogic extends Thread {
 				
 				// TODO INFORM PROLOG THAT DANGER IS FOUND (LAST DOUBT IS DANGER)
 				
-			}
+			}*/
 		}else if(knownArea.getMyZone().isTeleportEnemyDoubt()) {
 
 			knownArea.getMyZone().setTeleportEnemyDoubt(false);
@@ -272,7 +437,7 @@ public class GameLogic extends Thread {
 			
 			// TODO INFORM PROLOG THIS SENSATION IS GONE
 	
-			if(Cave.getZones()[posX][posY].getType() != 'T' && countDoubts(posX, posY, 'r') == 1) {
+			/*if(Cave.getZones()[posX][posY].getType() != 'T' && countDoubts(posX, posY, 'r') == 1) {
 				
 				int lastDoubtX = getDoubtXPos(posX,posY,'r');
 				int lastDoubtY = getDoubtYPos(posX,posY,'r');
@@ -282,18 +447,20 @@ public class GameLogic extends Thread {
 				
 				// TODO INFORM PROLOG THAT DANGER IS FOUND (LAST DOUBT IS DANGER)
 				
-			}
+			}*/
 		}
 		
 		if(Cave.getZones()[posX][posY].getType() == 'O') {
 			
 			// TODO PUT GOLD SENSATION IN PROLOG
+			sendKnowledgeToProlog(13-posX,posY,"glitter([",".");
 			
 			knownArea.getMyZone().setType('O');
 		}
 		else if(Cave.getZones()[posX][posY].getType() == 'U') {
 			
 			// TODO PUT EXTRA HEALTH FACT IN PROLOG, IF NOT ALREADY THERE
+			sendKnowledgeToProlog(13-posX,posY,"power_up([",".");
 			
 			knownArea.getMyZone().setType('U');
 		}
@@ -310,7 +477,7 @@ public class GameLogic extends Thread {
 			
 			knownArea.getMyZone().setVisited();
 			knownArea.getMyZone().setHoleDoubt(false);
-			updateDoubts(posX, posY, 'p');
+			//updateDoubts(posX, posY, 'p');
 			
 			knownArea.repaint();
 			return true;
@@ -322,10 +489,12 @@ public class GameLogic extends Thread {
 			if(Cave.getZones()[posX][posY].getType() == 'd') {
 				e = 'd';
 				d = 20;
+				sendKnowledgeToProlog(13-posX,posY,"danger([","d");
 			}
 			else {
 				e = 'D';
 				d = 50;
+				sendKnowledgeToProlog(13-posX,posY,"danger([","D");
 			}
 			
 			if(knownArea.getMyZone().getType() != e) {
@@ -340,7 +509,7 @@ public class GameLogic extends Thread {
 			
 			knownArea.getMyZone().setVisited();
 			knownArea.getMyZone().setDamageEnemyDoubt(false);
-			updateDoubts(posX, posY, 'e');
+			//updateDoubts(posX, posY, 'e');
 			
 			if(knownArea.getMyZone().getSamus().getHealth() <= 0) {
 				
@@ -359,6 +528,7 @@ public class GameLogic extends Thread {
 			// TODO UPDATE CHAR INFO INTO PROLOG
 			// INFORM PROLOG ABOUT DANGER, IF IT'S NOT A FACT ALREADY
 			// INFORM PROLOG THERE'S NO DOUBTS ANYMORE, IF THERE WERE ANY ABOUT THIS DANGER
+			sendKnowledgeToProlog(13-posX,posY,"samus([",".");
 			
 			if(knownArea.getMyZone().getSamus().getHealth() <= 80){
 				
@@ -375,7 +545,7 @@ public class GameLogic extends Thread {
 			
 			knownArea.getMyZone().setVisited();
 			knownArea.getMyZone().setTeleportEnemyDoubt(false);
-			updateDoubts(posX, posY, 'r');
+			//updateDoubts(posX, posY, 'r');
 			
 			knownArea.getMyZone().getEnemy().generateRandomPosition(knownArea.getMyZone());
 			
@@ -389,6 +559,8 @@ public class GameLogic extends Thread {
 			// TODO UPDATE CHAR INFO INTO PROLOG
 			// INFORM PROLOG ABOUT DANGER, IF IT'S NOT A FACT ALREADY
 			// INFORM PROLOG THERE'S NO DOUBTS ANYMORE, IF THERE WERE ANY ABOUT THIS DANGER
+			sendKnowledgeToProlog(13-posX,posY,"danger([","T");
+			sendKnowledgeToProlog(13-knownArea.getMyZone().getSamus().getI(),knownArea.getMyZone().getSamus().getJ(),"samus([",".");
 			
 			// Treat new position
 			if(treatMovement(knownArea.getMyZone().getI(),knownArea.getMyZone().getJ()))
@@ -401,6 +573,7 @@ public class GameLogic extends Thread {
 			
 			// TODO INFORM PROLOG ABOUT WALL SENSATION, IF IT'S NOT A FACT ALREADY
 			// TELL PROLOG TO GET BACK TO LAST POSITION
+			sendKnowledgeToProlog(13-posX,posY,"bump([",".");
 			
 		}
 		else

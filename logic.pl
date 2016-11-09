@@ -8,7 +8,6 @@
 :- dynamic lastPosition/1.  % Zone last visited : Position
 :- dynamic toVisit/1.  % Zones not visited yet : Position
 :- dynamic visited/1.  % Zones visited : Position
-:- dynamic doubt/1.    % Zones doubt: Position
 :- dynamic danger/2.   % Zones WITH danger : Position && 'P' || 'd' || 'D' || 'T'
 :- dynamic power_up/1. % Zones WITH power_up : Position
 :- dynamic sound/1.  % Zones WITH sound  : Position
@@ -18,7 +17,7 @@
 :- dynamic bump/1.     % Zones WITH bump   : Position
 :- dynamic scream/1.   % Zones WITH scream : Position
 
-% 4 vizinhos de uma posicao qualquer do agente.
+% 4 VIZINHOS do agente para uma dada posicao.
 :-dynamic neighbor01/2.
 :-dynamic neighbor02/2.
 :-dynamic neighbor03/2.
@@ -29,27 +28,37 @@
 %% Our main character
 % DIRECTIONS: 1 == Up || 2 == Down || 3 == Left || 4 == Right
 % Obs.: Have in mind that in our Java matrix, the initial position is [ 12 | 1 ]
-samus( [1 | 1], 1, 100, 5, 0 ). % Position && Facing Direction && Health && Ammo && Score
-visited( [1 | 1]).
-lastPosition([1 | 1]).
+samus( [6 | 7], 1, 100, 5, 0 ). % Position && Facing Direction && Health && Ammo && Score
+visited( [6 | 7]).
+lastPosition([6 | 7]).
+
 
 %%%%%		Main Rules			%%%%%
 %% Actions rule, this is the one Java calls to perform an action
 %  RETURNED ACTIONS: 'D' == Direction changed || 'M' == Moved ahead || 'G' == Grab object
-action( A ) :- factor_bump; ( (grab(A1),
-	     passInformation(A, A1), ! ;
-	     move(A1), passInformation(A, A1) /*, ! ;
-	     NO ENEMIES, NO HOLES, NO ENERGY NEEDED, */ ), ! ).
+action( A ) :- factor_scream; grab(A1),
+	      passInformation(A, A1), ! ;
+	      move(A1), passInformation(A, A1), !.
+
 
 
 %% Factor to verify and correct the bump effect;
 factor_bump :- samus([ I1 | J1 ],_,_,_,_),
-	     bump([I1 | J1]),
-	     lastPosition(L),
-	     statusChange( 'P', L ).
-			   
+	       bump([I1 | J1]).
 
 
+factor_scream :- samus([ I | J ],D,_,_,_),
+		(
+			D == 1, T is I + 1, L = [ T | J ], !;  
+		  	D == 2, T is I - 1, L = [ T | J ], !; 
+		  	D == 3, T is J - 1, L = [ I | T ], !; 
+		  	D == 4, T is J + 1, L = [ I | T ]
+		
+		), scream(L), retract( scream(L) ), retract( danger(L, _) ), 
+		!.
+		
+		
+		
 %% Grab object rule, if there's a gold or a healing item where she stands
 grab( G ) :- samus([ I1 | J1 ],_,H,_,_),
 	     (   visited([I1 | J1]),
@@ -128,7 +137,7 @@ checkVisited( I, J ) :- \+visited([I|J]).
 
 %%(ultima zona visitada != zona atual). Atualiza ULTIMA ZONA visitada.
 update_lastVisited :- samus([ X | Y ],_,_,_,_),
-    				  ( retract(lastPosition([_ | _])),
+    		      ( retract(lastPosition([_ | _])),
                         assert(lastPosition([X| Y]))
                       ). 
                               
@@ -146,7 +155,8 @@ agent_neighbors :- samus([ X | Y ],_,_,_,_),
 
 %% Verifico se um dado VIZINHO NAO SE ENCONTRA nas listas "VISITADOS" e "A_VISITAR"
 check_neighbor(X, Y) :- checkVisited( X, Y ),
-						checkToVisit( X, Y ).
+						checkToVisit( X, Y ),
+    					\+ bump([X|Y]).
 
 %% APAGAR todos os VIZINHOS.						
 free_neighbors :- retract(neighbor01(_, _)),
@@ -157,24 +167,42 @@ free_neighbors :- retract(neighbor01(_, _)),
 
 %% MOVER da lista "A_VISITAR" PARA "VISITADOS".
 moveToVisited(X, Y) :- assert(visited([ X | Y ])),
-					   retract(toVisit([ X | Y ])).
+		       retract(toVisit([ X | Y ])).
 
 
 %% Se há uma zona VISITADA em frente disponivel, o samus segue em LINHA RETA. 
 goforwardToVisited :- samus( [I | J], D, _, _, _ ),  	    
-		  (   (D == 1, T is J + 1, visited([ I | T ]), statusChange('P', [ I | T ])), !; 
-			  (D == 2, T is J - 1, visited([ I | T ]), statusChange('P', [ I | T ])), !;
-			  (D == 3, T is I - 1, visited([ T | J ]), statusChange('P', [ T | J ])), !;
-			  (D == 4, T is I + 1, visited([ T | J ]), statusChange('P', [ T | J ])) 
-          ).
+		  			(   
+    				        D == 1, T is I + 1, visited([ T | J ]), statusChange('P', [ T | J ]), !;  
+		  			D == 2, T is I - 1, visited([ T | J ]), statusChange('P', [ T | J ]), !; 
+		  			D == 3, T is J - 1, visited([ I | T ]), statusChange('P', [ I | T ]), !; 
+		  			D == 4, T is J + 1, visited([ I | T ]), statusChange('P', [ I | T ])
+                    ), !.
 
 
 goforwardToVisit :- samus( [I | J], D, _, _, _ ),  	    
-		  (   (D == 1, T is J + 1, toVisit([ I | T ]), statusChange('P', [ I | T ]), moveToVisited( I, T ) ), !; 
-			  (D == 2, T is J - 1, toVisit([ I | T ]), statusChange('P', [ I | T ]), moveToVisited( I, T ) ), !;
-			  (D == 3, T is I - 1, toVisit([ T | J ]), statusChange('P', [ T | J ]), moveToVisited( T, J ) ), !;
-			  (D == 4, T is I + 1, toVisit([ T | J ]), statusChange('P', [ T | J ]), moveToVisited( T, J ) ) 
-          ).
+		  (   
+    	  D == 1, T is I + 1, toVisit([ T | J ]), statusChange('P', [ T | J ]), moveToVisited( T, J ) , !; 
+		  D == 2, T is I - 1, toVisit([ T | J ]), statusChange('P', [ T | J ]), moveToVisited( T, J ) , !;
+		  D == 3, T is J - 1, toVisit([ I | T ]), statusChange('P', [ I | T ]), moveToVisited( I, T ) , !;
+		  D == 4, T is J + 1, toVisit([ I| T ]),  statusChange('P', [ I | T ]), moveToVisited( I, T )
+          ), !.
+
+
+goforwardToMonster :- samus( [I | J], D, _, _, _ ),  	    
+		      ( D == 1, T is I + 1, danger([ T | J ], 'D'), statusChange('P', [ T | J ]), !; 
+		  	D == 2, T is I - 1, danger([ T | J ], 'D'), statusChange('P', [ T | J ]), !;
+		        D == 3, T is J - 1, danger([ I | T ], 'D'), statusChange('P', [ I | T ]), !;
+		                  D == 4, T is J + 1, danger([ I | T ], 'D'), statusChange('P', [ I | T ]) 
+          		        ), !.
+
+goforwardToExit :- samus( [I | J], D, _, _, _ ),  	    
+		  (   
+    	  D == 1, T is I + 1, danger([ T | J ], 'D'), statusChange('P', [ T | J ]), !; 
+		  D == 2, T is I - 1, danger([ T | J ], 'D'), statusChange('P', [ T | J ]), !;
+		  D == 3, T is J - 1, danger([ I | T ], 'D'), statusChange('P', [ I | T ]), !;
+		  D == 4, T is J + 1, danger([ I | T ], 'D'), statusChange('P', [ I | T ]) 
+          ), !.
 
 
 %% Sentindo uma BRISA. Perigo fatal!
@@ -193,31 +221,72 @@ feel_free :- agent_neighbors,
 			( neighbor02(X, Y), check_neighbor(X, Y), assert(toVisit([ X | Y ])), ( danger([ X | Y ], _), retract(danger([ X | Y ], _)) ) );
 			( neighbor03(X, Y), check_neighbor(X, Y), assert(toVisit([ X | Y ])), ( danger([ X | Y ], _), retract(danger([ X | Y ], _)) ) );
 			( neighbor04(X, Y), check_neighbor(X, Y), assert(toVisit([ X | Y ])), ( danger([ X | Y ], _), retract(danger([ X | Y ], _)) ) );
+			( free_neighbors ),
+    		!.
+
+feel_flash :- agent_neighbors,
+			( neighbor01(X, Y), check_neighbor(X, Y), \+ danger([ X | Y ], 'T'), assert( danger([ X | Y ], 'T')) );
+			( neighbor02(X, Y), check_neighbor(X, Y), \+ danger([ X | Y ], 'T'), assert( danger([ X | Y ], 'T')) );
+			( neighbor03(X, Y), check_neighbor(X, Y), \+ danger([ X | Y ], 'T'), assert( danger([ X | Y ], 'T')) );
+			( neighbor04(X, Y), check_neighbor(X, Y), \+ danger([ X | Y ], 'T'), assert( danger([ X | Y ], 'T')) );
 			( free_neighbors );
     		!.
 
-
+feel_sound :- agent_neighbors,
+			( neighbor01(X, Y), check_neighbor(X, Y), \+ danger([ X | Y ], 'D'), assert( danger([ X | Y ], 'D')) );
+			( neighbor02(X, Y), check_neighbor(X, Y), \+ danger([ X | Y ], 'D'), assert( danger([ X | Y ], 'D')) );
+			( neighbor03(X, Y), check_neighbor(X, Y), \+ danger([ X | Y ], 'D'), assert( danger([ X | Y ], 'D')) );
+			( neighbor04(X, Y), check_neighbor(X, Y), \+ danger([ X | Y ], 'D'), assert( danger([ X | Y ], 'D')) );
+			( free_neighbors );
+    		!.
 
 %% MOVIMENTO para BRISA
-moveBreeze(M) :- samus([ X | Y ],_,_,_,_),
-    	   breeze([ X | Y ]), 
-           feel_breeze, 
-           goforwardToVisited, 
-           samus([ A | B ],_,_,_,_), 
-    	   (A == X, B == Y, turnRight, M = 'D'), !;
-           (M = 'M').
-    	  
-    	   
-moveFree(M) :- samus([ X | Y ],_,_,_,_),
-               feel_free,
-    		   goforwardToVisit,
-    		   samus([ A | B ],_,_,_,_),
-               (A == X, B == Y, turnRight, M = 'D'), !;
-               (M = 'M').
+moveBreeze(M) :- feel_breeze, 
+                 goforwardToVisit, M = 'M', !;
+    		 goforwardToVisited, M = 'M', !;
+		 turnRight, M = 'D', !. 
+
+moveBump :-  turnRight, turnRight, goforwardToVisited, goforwardToVisited.
+		         		
+   	     	   
+moveFree(M) :- feel_free,
+    	       goforwardToVisit, M = 'M', !;
+               turnRight, M = 'D', !.
     
+moveFlash(M) :- feel_flash, 
+           	goforwardToVisit, M = 'M', !;
+    		goforwardToVisited, M = 'M', !;
+		turnRight, M = 'D', !. 
 
-move(M) :- moveBreeze(M),
-           moveFree(M).
+moveSound(M) :- feel_sound,
+		goforwardToVisit, M = 'M', !;
+    		goforwardToVisited, M = 'M', !;	
+    		samus(_,_,H,_,_), H >= 90, goforwardToMonster, M = 'M', !;
+    		turnRight, M = 'D', !.
 
+moveExit(M) :-  goforwardToVisited, M = 'M', !;
+	       	turnRight, M = 'D', !. 
 
+exit_condition1 :- agent_neighbors,
+                ( neighbor01(X, Y), visited([X | Y]) ),
+	        ( neighbor02(X, Y), visited([X | Y]) ),
+	        ( neighbor03(X, Y), visited([X | Y]) ),
+	        ( neighbor04(X, Y), visited([X | Y]) ).
 
+exit_condition2 :- agent_neighbors,
+                ( neighbor01(X, Y), danger([X | Y], 'D' )),
+	        ( neighbor02(X, Y), danger([X | Y], 'D' )),
+	       	( neighbor03(X, Y), danger([X | Y], 'D' )),
+	        ( neighbor04(X, Y), danger([X | Y], 'D' )).
+
+shoot(M) :- samus(_,_,_,A,_), A >= 1, statusChange( 'A', 1 ), statusChange( 'S', -1 ), M = 'S'.
+    	 
+
+move(M) :- ( factor_bump, moveBump );
+	   exit_condition1, free_neighbors, moveExit(M), !;
+	   exit_condition2, free_neighbors, shoot(M), !;
+    	   exit_condition2, free_neighbors, goforwardToMonster, M = 'M', !;
+    	   samus([ X | Y ],_,_,_,_), breeze([X|Y]), moveBreeze(M),!;
+    	   samus([ X | Y ],_,_,_,_), flash([X|Y]), moveFlash(M),!;
+    	   samus([ X | Y ],_,_,_,_), sound([X|Y]), moveSound(M),!;
+           moveFree(M), !.
