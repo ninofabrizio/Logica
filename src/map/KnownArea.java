@@ -88,6 +88,12 @@ public class KnownArea extends JPanel {
 		
 		updateCorners();
 		
+		for(i = 0; i < 14; i++) {
+			for(j = 0; j < 14; j++)
+				System.out.print(exploredMap[i][j].getType() + " ");
+			System.out.println();
+		}
+		
 		for(i = 0, yPos = 0.0; i < 14; i++, yPos += zoneHeight) {
 			for(j = 0, xPos = 0.0; j < 14; j++, xPos += zoneWidth) {
 				
@@ -294,7 +300,7 @@ public class KnownArea extends JPanel {
 
 	private void updateCorners() {
 		
-		if(exploredMap[12][0].getType() == 'W' && exploredMap[13][2].getType() == 'W')
+		if(exploredMap[12][0].getType() == 'W' && exploredMap[13][1].getType() == 'W')
 			exploredMap[13][0].setType('W');
 		if(exploredMap[1][0].getType() == 'W' && exploredMap[0][1].getType() == 'W')
 			exploredMap[0][0].setType('W');
