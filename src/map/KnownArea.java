@@ -1,7 +1,5 @@
 package map;
 
-import gui.WindowMaker;
-
 import java.awt.Color;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
@@ -9,7 +7,6 @@ import java.awt.Image;
 import java.awt.geom.Rectangle2D;
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
 
 import javax.imageio.ImageIO;
 import javax.swing.JPanel;
@@ -17,7 +14,7 @@ import javax.swing.JPanel;
 public class KnownArea extends JPanel {
 
 	// TODO Dictionary for extra types:
-	// 'u' == unknown/unexplored zone
+	// 'n' == unknown/unexplored zone
 	// 'p' == possible hole
 	// 'e' == possible Pirate (small enemy) or Metroid (big enemy)
 	// 'r' == possible Ridley (teleport)
@@ -27,14 +24,6 @@ public class KnownArea extends JPanel {
 	private Zone myZone;
 	
 	private int zoneWidth, zoneHeight;
-	
-	/*
-	 * TODO:
-	 * - Methods listed below in verifyValidPosition
-	 * - Method to check and update our holeZones list for each step
-	 * - Some other methods we'll still need...
-	 * - Adjust wall cells that are corners when It's walls neighbors are both marked as known walls ('W'), just to paint it right
-	 */
 	
 	public KnownArea(int zoneWidth, int zoneHeight) {
 		
@@ -49,7 +38,7 @@ public class KnownArea extends JPanel {
 				exploredMap[i][j].setI(i);
 				exploredMap[i][j].setJ(j);
 				if(i != 0 && i != 13 && j != 0 && j != 13)
-					exploredMap[i][j].setType('u');
+					exploredMap[i][j].setType('n');
 				else
 					exploredMap[i][j].setType('w');
 			}
@@ -76,6 +65,18 @@ public class KnownArea extends JPanel {
 		return exploredMap;
 	}
 
+	private void updateCorners() {
+		
+		if(exploredMap[12][0].getType() == 'W' && exploredMap[13][1].getType() == 'W')
+			exploredMap[13][0].setType('W');
+		if(exploredMap[1][0].getType() == 'W' && exploredMap[0][1].getType() == 'W')
+			exploredMap[0][0].setType('W');
+		if(exploredMap[0][12].getType() == 'W' && exploredMap[1][13].getType() == 'W')
+			exploredMap[0][13].setType('W');
+		if(exploredMap[12][13].getType() == 'W' && exploredMap[13][12].getType() == 'W')
+			exploredMap[13][13].setType('W');
+	}
+	
 	public void paintComponent(Graphics g) {
 		
 		super.paintComponent(g);
@@ -296,17 +297,5 @@ public class KnownArea extends JPanel {
 				}
 			}
 		}
-	}
-
-	private void updateCorners() {
-		
-		if(exploredMap[12][0].getType() == 'W' && exploredMap[13][1].getType() == 'W')
-			exploredMap[13][0].setType('W');
-		if(exploredMap[1][0].getType() == 'W' && exploredMap[0][1].getType() == 'W')
-			exploredMap[0][0].setType('W');
-		if(exploredMap[0][12].getType() == 'W' && exploredMap[1][13].getType() == 'W')
-			exploredMap[0][13].setType('W');
-		if(exploredMap[12][13].getType() == 'W' && exploredMap[13][12].getType() == 'W')
-			exploredMap[13][13].setType('W');
 	}
 }

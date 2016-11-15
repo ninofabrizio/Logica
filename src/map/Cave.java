@@ -85,6 +85,7 @@ public class Cave extends JPanel {
 					samusZone.getSamus().getKnownArea().getExploredMap()[i][j].setSamus(samusZone.getSamus());
 					samusZone.getSamus().getKnownArea().setMyZone(samusZone.getSamus().getKnownArea().getExploredMap()[i][j]);
 					samusZone.getSamus().getKnownArea().getMyZone().setVisited();
+					samusZone.setType('.');
 				}
 				else {
 					caveMap[i][j].setSamus(null);

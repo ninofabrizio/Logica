@@ -11,6 +11,12 @@ public class Zone {
 	private Enemy enemy;
 	private boolean visited = false, stepSounds = false, breeze = false, flash = false,
 					damageEnemyDoubt = false, holeDoubt = false, teleportEnemyDoubt = false;
+	
+	// For AStar usage
+	private int g = -1; // G
+    private int f = -1; // G + H
+	private int h;
+	private Zone parent;
     
 	public void setI(int i) {
 		this.i = i;
@@ -60,6 +66,22 @@ public class Zone {
 		teleportEnemyDoubt = condition;
 	}
 	
+	public void setG(int g) {
+		this.g = g;
+	}
+	
+	public void setF(int f) {
+		this.f = f;
+	}
+	
+	public void setH(int h) {
+		this.h = h;
+	}
+	
+	public void setParent(Zone parent) {
+		this.parent = parent;
+	}
+	
 	public int getI() { 
 		return i;
 	}
@@ -78,6 +100,22 @@ public class Zone {
 	
 	public Enemy getEnemy() {
 		return enemy;
+	}
+	
+	public int getG() {
+		return g;
+	}
+	
+	public int getF() {
+		return f;
+	}
+	
+	public int getH() {
+		return h;
+	}
+	
+	public Zone getParent() {
+		return parent;
 	}
 	
 	public boolean isVisited() {

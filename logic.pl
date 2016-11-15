@@ -4,20 +4,24 @@
 
 %% About the map
 % Dictionary: 'P' == Hole || 'd' == 20 damage enemy || 'D' == 50 damage enemy || 'T' == Teleport enemy
-:- dynamic lastPosition/1.	% Zone last visited				: Position
-:- dynamic toVisit/1.		% Zones not visited yet			: Position
-:- dynamic visited/1.		% Zones visited					: Position
-:- dynamic danger/2.		% Zones WITH danger				: Position && 'P' || 'd' || 'D' || 'T'
+:- dynamic lastPosition/1.		% Zone last visited				: Position
+:- dynamic toVisit/1.			% Zones not visited yet			: Position
+:- dynamic visited/1.			% Zones visited					: Position
+:- dynamic danger/2.			% Zones WITH danger				: Position && 'P' || 'd' || 'D' || 'T'
 
-:- dynamic doubt/2.			% Zones WITH POTENTIAL danger	: Position && 'P' || 'd' || 'D' || 'T'
+:- dynamic doubt/2.				% Zones WITH POTENTIAL danger	: Position && 'P' || 'd' || 'D' || 'T'
 
-:- dynamic power_up/1.		% Zones WITH power_up(health)	: Position
-:- dynamic sound/1.			% Zones WITH sound(damage)		: Position
-:- dynamic flash/1.			% Zones WITH flash(teleport)	: Position
-:- dynamic breeze/1.		% Zones WITH breeze	(hole)		: Position
-:- dynamic glitter/1.		% Zones WITH glitter(gold)		: Position
-:- dynamic bump/1.			% Zones WITH bump(wall)			: Position
-:- dynamic scream/1.		% Zones WITH scream(dead enemy)	: Position
+:- dynamic power_up/1.			% Zones WITH power_up(health)	: Position
+:- dynamic sound/1.				% Zones WITH sound(damage)		: Position
+:- dynamic flash/1.				% Zones WITH flash(teleport)	: Position
+:- dynamic breeze/1.			% Zones WITH breeze	(hole)		: Position
+:- dynamic glitter/1.			% Zones WITH glitter(gold)		: Position
+:- dynamic bump/1.				% Zones WITH bump(wall)			: Position
+:- dynamic scream/1.			% Zones WITH scream(dead enemy)	: Position
+
+:- dynamic nextDestination/1.	% Next zone to go(AStar feature): Position
+
+:- dynamic goldLeftToTake/1.	% Number of gold left to take	: Number
 
 % 4 VIZINHOS do agente para uma dada posicao.
 :-dynamic neighbor01/2.
@@ -33,21 +37,45 @@
 samus( [1 | 1], 1, 100, 5, 0 ). % Order: Position && Facing Direction && Health && Ammo && Score
 visited( [1 | 1] ).
 lastPosition( [1 | 1] ).
+goldLeftToTake(3).
 
 
 %%%%%		Main Rules			%%%%%
 %% Actions rule, this is the one Java calls to perform an action
 %  RETURNED ACTIONS: 'D' == Direction changed || 'M' == Moved ahead || 'G' == Grabed object || 'S' == Shot in front || 'C' == Climbed the ladder
-action( A ) :-	factor_bump, % Here checks for bump first.
+action( A ) :-	goldLeftToTake(N), N == 0, samus([X1 | Y1],_,_,_,_), X1 == 1, Y1 == 1, % Here checks if it can climb
+				statusChange('S', -1), passInformation(A, 'C'), !.
+
+action( A ) :-	factor_bump, % Here checks first for bump, if false...
 	     		grab(A1), passInformation(A, A1), !.
-action( A ) :-	factor_scream, % Here checks for scream.
+action( A ) :-	factor_scream, % ...then checks for scream, if also false...
 	     		grab(A1), passInformation(A, A1), !.
-action( A ) :-	grab(A1), passInformation(A, A1), !.
-action( A ) :-	factor_bump, % Here checks for bump first.
+action( A ) :-	grab(A1), passInformation(A, A1), !. % ...just takes action
+
+action( A ) :-	factor_bump, % Here checks first for bump, if false...
 	     		move(A1), passInformation(A, A1), !.
-action( A ) :-	factor_scream, % Here checks for scream.
+action( A ) :-	factor_scream, % ...then checks for scream, if also false...
 	     		move(A1), passInformation(A, A1), !.
-action( A ) :-	move(A1), passInformation(A, A1), !.
+action( A ) :-	move(A1), passInformation(A, A1), !. % ...just takes action
+
+
+
+%% AStar actions rule, this is the one Java calls to perform an action if AStar was activated
+%  RETURNED ACTIONS: 'D' == Direction changed || 'M' == Moved ahead
+aStarAction( A ) :- moveToDestination(A1), passInformation(A, A1), !.
+
+
+
+%% Move to destination rule, if it doesn't moves turns right
+moveToDestination( M ) :-	samus([X1 | Y1], D,_,_,_), nextDestination([X2 | Y1]),
+							D == 1, X3 is X1 + 1, X3 == X2, statusChange('P', [X3 | Y1]), statusChange('S', -1), retract(nextDestination(_)), M = 'M', !.
+moveToDestination( M ) :-	samus([X1 | Y1], D,_,_,_), nextDestination([X2 | Y1]),
+							D == 2, X3 is X1 - 1, X3 == X2, statusChange('P', [X3 | Y1]), statusChange('S', -1), retract(nextDestination(_)), M = 'M', !.
+moveToDestination( M ) :-	samus([X1 | Y1], D,_,_,_), nextDestination([X1 | Y2]),
+							D == 3, Y3 is Y1 - 1, Y3 == Y2, statusChange('P', [X1 | Y3]), statusChange('S', -1), retract(nextDestination(_)), M = 'M', !.
+moveToDestination( M ) :-	samus([X1 | Y1], D,_,_,_), nextDestination([X1 | Y2]),
+							D == 4, Y3 is Y1 + 1, Y3 == Y2, statusChange('P', [X1 | Y3]), statusChange('S', -1), retract(nextDestination(_)), M = 'M', !.
+moveToDestination( M ) :-	turnRight, M = 'D', !.
 
 
 
@@ -85,7 +113,11 @@ grab( G ) :-	samus([ I1 | J1 ],_,H,_,_),
 
 %% Grab gold rule
 grabGold( I, J ) :- retract(glitter([I | J])),
-		  			statusChange('S', 999).
+		  			statusChange('S', 999),
+	     			goldLeftToTake(N1),
+	     			N2 is N1 - 1,
+	     			retract(goldLeftToTake(_)),
+	     			assert(goldLeftToTake(N2)).
 
 
 
@@ -228,8 +260,8 @@ mark_doubts :- 	agent_neighbors,
 				danger([X1 | Y1], D1), (danger([X2 | Y2], D1) ; danger([X3 | Y3], D1) ; danger([X4 | Y4], D1)),
 				((danger([X2 | Y2], D1), assert(doubt([X2 | Y2], D1)) /*,retract(danger([X2 | Y2], D))*/ );
 				(danger([X3 | Y3], D1), assert(doubt([X3 | Y3], D1)) /*,retract(danger([X3 | Y3], D))*/ );
-				(danger([X4 | Y4], D1), assert(doubt([X4 | Y4], D1)) /*,retract(danger([X4 | Y4], D)))*/ )),
-				assert(doubt([X1 | Y1], D1)) /*,retract(danger[X1 | Y1], D))*/ ,
+				(danger([X4 | Y4], D1), assert(doubt([X4 | Y4], D1)) /*,retract(danger([X4 | Y4], D))*/ )),
+				assert(doubt([X1 | Y1], D1)) /*,retract(danger([X1 | Y1], D))*/ ,
 				free_neighbors.
 mark_doubts :- 	agent_neighbors,
 				neighbor01(X1, Y1), neighbor02(X2, Y2),
@@ -237,8 +269,8 @@ mark_doubts :- 	agent_neighbors,
 				danger([X2 | Y2], D2), (danger([X1 | Y1], D2) ; danger([X3 | Y3], D2) ; danger([X4 | Y4], D2)),
 				((danger([X1 | Y1], D2), assert(doubt([X1 | Y1], D2)) /*,retract(danger([X2 | Y2], D))*/ );
 				(danger([X3 | Y3], D2), assert(doubt([X3 | Y3], D2)) /*,retract(danger([X3 | Y3], D))*/ );
-				(danger([X4 | Y4], D2), assert(doubt([X4 | Y4], D2)) /*,retract(danger([X4 | Y4], D)))*/ )),
-				assert(doubt([X2 | Y2], D2)) /*,retract(danger[X1 | Y1], D))*/,
+				(danger([X4 | Y4], D2), assert(doubt([X4 | Y4], D2)) /*,retract(danger([X4 | Y4], D))*/ )),
+				assert(doubt([X2 | Y2], D2)) /*,retract(danger([X1 | Y1], D))*/,
 				free_neighbors.
 mark_doubts :- 	agent_neighbors,
 				neighbor01(X1, Y1), neighbor02(X2, Y2),
@@ -246,8 +278,8 @@ mark_doubts :- 	agent_neighbors,
 				danger([X3 | Y3], D3), (danger([X2 | Y2], D3) ; danger([X1 | Y1], D3) ; danger([X4 | Y4], D3)),
 				((danger([X2 | Y2], D3), assert(doubt([X2 | Y2], D3)) /*,retract(danger([X2 | Y2], D))*/ );
 				(danger([X1 | Y1], D3), assert(doubt([X1 | Y1], D3)) /*,retract(danger([X3 | Y3], D))*/ );
-				(danger([X4 | Y4], D3), assert(doubt([X4 | Y4], D3)) /*,retract(danger([X4 | Y4], D)))*/ )),
-				assert(doubt([X3 | Y3], D3)) /*,retract(danger[X1 | Y1], D))*/,
+				(danger([X4 | Y4], D3), assert(doubt([X4 | Y4], D3)) /*,retract(danger([X4 | Y4], D))*/ )),
+				assert(doubt([X3 | Y3], D3)) /*,retract(danger([X1 | Y1], D))*/,
 				free_neighbors.
 mark_doubts :- 	agent_neighbors,
 				neighbor01(X1, Y1), neighbor02(X2, Y2),
@@ -255,8 +287,8 @@ mark_doubts :- 	agent_neighbors,
 				danger([X4 | Y4], D4), (danger([X2 | Y2], D4) ; danger([X3 | Y3], D4) ; danger([X1 | Y1], D4)),
 				((danger([X2 | Y2], D4), assert(doubt([X2 | Y2], D4)) /*,retract(danger([X2 | Y2], D))*/ );
 				(danger([X3 | Y3], D4), assert(doubt([X3 | Y3], D4)) /*,retract(danger([X3 | Y3], D))*/ );
-				(danger([X1 | Y1], D4), assert(doubt([X1 | Y1], D4)) /*,retract(danger([X4 | Y4], D)))*/ )),
-				assert(doubt([X4 | Y4], D4)) /*,retract(danger[X1 | Y1], D))*/,
+				(danger([X1 | Y1], D4), assert(doubt([X1 | Y1], D4)) /*,retract(danger([X4 | Y4], D))*/ )),
+				assert(doubt([X4 | Y4], D4)) /*,retract(danger([X1 | Y1], D))*/,
 				free_neighbors.
 
 
@@ -272,10 +304,10 @@ feel_breeze :- agent_neighbors,
 
 %% Sentindo NADA. Tambem ATUALIZO a lista de PERIGOS e DUVIDAS.
 feel_free :- agent_neighbors,
-			( neighbor01(X, Y), check_neighbor(X, Y), assert(toVisit([ X | Y ])), ( danger([ X | Y ], _), retract(danger([ X | Y ], _))), ( doubt([ X | Y ], _), retract(doubt([ X | Y ], _))));
-			( neighbor02(X, Y), check_neighbor(X, Y), assert(toVisit([ X | Y ])), ( danger([ X | Y ], _), retract(danger([ X | Y ], _))), ( doubt([ X | Y ], _), retract(doubt([ X | Y ], _))));
-			( neighbor03(X, Y), check_neighbor(X, Y), assert(toVisit([ X | Y ])), ( danger([ X | Y ], _), retract(danger([ X | Y ], _))), ( doubt([ X | Y ], _), retract(doubt([ X | Y ], _))));
-			( neighbor04(X, Y), check_neighbor(X, Y), assert(toVisit([ X | Y ])), ( danger([ X | Y ], _), retract(danger([ X | Y ], _))), ( doubt([ X | Y ], _), retract(doubt([ X | Y ], _))));
+			( neighbor01(X, Y), check_neighbor(X, Y), assert(toVisit([ X | Y ])), ( danger([ X | Y ], _), retract(danger([ X | Y ], _))) /*, ( doubt([ X | Y ], _), retract(doubt([ X | Y ], _)))*/ );
+			( neighbor02(X, Y), check_neighbor(X, Y), assert(toVisit([ X | Y ])), ( danger([ X | Y ], _), retract(danger([ X | Y ], _))) /*, ( doubt([ X | Y ], _), retract(doubt([ X | Y ], _)))*/ );
+			( neighbor03(X, Y), check_neighbor(X, Y), assert(toVisit([ X | Y ])), ( danger([ X | Y ], _), retract(danger([ X | Y ], _))) /*, ( doubt([ X | Y ], _), retract(doubt([ X | Y ], _)))*/ );
+			( neighbor04(X, Y), check_neighbor(X, Y), assert(toVisit([ X | Y ])), ( danger([ X | Y ], _), retract(danger([ X | Y ], _))) /*, ( doubt([ X | Y ], _), retract(doubt([ X | Y ], _)))*/ );
 			( free_neighbors ),
     		!.
 
@@ -296,7 +328,7 @@ feel_sound :- agent_neighbors,
     		!.
 
 %% MOVIMENTO para BRISA
-moveBreeze(M) :- 	feel_breeze, mark_doubts,
+moveBreeze(M) :- 	feel_breeze, %mark_doubts,
                  	goforwardToVisit, M = 'M', !;
     		 		goforwardToVisited, M = 'M', !;
 		 			turnRight, M = 'D', !.
@@ -306,12 +338,12 @@ moveFree(M) :- feel_free,
     	       goforwardToVisit, M = 'M', !;
                turnRight, M = 'D', !.
     
-moveFlash(M) :- feel_flash, mark_doubts,
+moveFlash(M) :- feel_flash, %mark_doubts,
            		goforwardToVisit, M = 'M', !;
     			goforwardToVisited, M = 'M', !;
 				turnRight, M = 'D', !. 
 
-moveSound(M) :- feel_sound, mark_doubts,
+moveSound(M) :- feel_sound, %mark_doubts,
 				goforwardToVisit, M = 'M', !;
     			goforwardToVisited, M = 'M', !;	
     			samus(_,_,H,_,_), H >= 90, goforwardToMonster, M = 'M', !;

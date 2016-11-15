@@ -2,6 +2,8 @@ package project;
 
 import gui.WindowMaker;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 import map.Cave;
@@ -16,7 +18,7 @@ import characters.Enemy;
 
 public class GameLogic extends Thread {
 
-	private int goldToTake = 3, waitTime;
+	private int goldLeftToTake = 3, waitTime;
 	
 	private KnownArea knownArea;
 	
@@ -27,10 +29,10 @@ public class GameLogic extends Thread {
 
 	public void run() {
 
+		List<Zone> aStarPath = null;
+		
 		Query q1 = new Query("consult", new Term[] { new Atom("logic.pl") });
 		q1.hasSolution();
-		
-		knownArea.getMyZone().setType('.');
 		
 		if(isSensationZone('p', 12, 1)) {
 			//showDoubt('p', 12, 1);
@@ -39,6 +41,12 @@ public class GameLogic extends Thread {
 			sendKnowledgeToProlog(13-12,1,"breeze([",".");
 			getKnowledgeFromProlog("breeze");
 			knownArea.repaint();
+			
+			try {
+				sleep(waitTime);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
 		}
 		if(isSensationZone('e', 12, 1)) {
 			//showDoubt('e', 12, 1);
@@ -47,6 +55,12 @@ public class GameLogic extends Thread {
 			sendKnowledgeToProlog(13-12,1,"sound([",".");
 			getKnowledgeFromProlog("sound");
 			knownArea.repaint();
+			
+			try {
+				sleep(waitTime);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
 		}
 		if(isSensationZone('r', 12, 1)) {
 			//showDoubt('r', 12, 1);
@@ -56,11 +70,22 @@ public class GameLogic extends Thread {
 			getKnowledgeFromProlog("flash");
 			getKnowledgeFromProlog("doubt");
 			knownArea.repaint();
+			
+			try {
+				sleep(waitTime);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
 		}
 
 		while(true) {
 
-			Query q2 = new Query("action(X)");
+			Query q2;
+			
+			if(aStarPath == null)
+				q2 = new Query("action(X)");
+			else
+				q2 = new Query("aStarAction(X)");
 
 			Map<String, Term>[] solution = q2.allSolutions();
 
@@ -154,16 +179,17 @@ public class GameLogic extends Thread {
 					
 					if(Cave.getZones()[posX][posY].getType() == 'O') {
 						Cave.getZones()[posX][posY].setType('o');
-						goldToTake--;
+						goldLeftToTake--;
 					}
 					else if(Cave.getZones()[posX][posY].getType() == 'U')
 						Cave.getZones()[posX][posY].setType('h');
 				}
-				else if(action == 'M')
+				else if(action == 'M') {
 					if(treatMovement(posX, posY)) {
 						knownArea.repaint();
 						break;
 					}
+				}
 				else if (action == 'S') {
 					
 					if(isValidShot(posX, posY)) {
@@ -201,14 +227,89 @@ public class GameLogic extends Thread {
 						}
 					}
 				}
-				else if(action == 'C' && goldToTake == 0) {
-					
-					// TODO CALL METHOD TO SEARCH FOR EXIT (ASTAR), WITH IT'S OWN LOOP UNTIL GO UP ACTION
-					
+				else if(action == 'C')
 					break;
-				}
 				
 				knownArea.repaint();
+				
+				// Dealing with AStar situation
+				if(aStarPath == null) {
+					if(goldLeftToTake == 0) {
+						AStar star = new AStar(knownArea.getExploredMap(), knownArea.getMyZone(), knownArea.getExploredMap()[12][1]);
+						aStarPath = star.aStar();
+						
+						if(aStarPath != null && aStarPath.size() > 1) {
+							aStarPath.remove(aStarPath.size()-1); // Getting rid of position she's in
+							Zone nextDestination = aStarPath.remove(aStarPath.size()-1);
+							sendKnowledgeToProlog(13-nextDestination.getI(),nextDestination.getJ(),"nextDestination([",".");
+						}
+						else
+							aStarPath = null;
+					}
+					else if(knownArea.getMyZone().getSamus().getHealth() <= 80) {
+						
+						List<Zone> closestPath = null;
+						
+						// Looking for known power-ups
+						for(int i = 1, bestPathCost = 0; i < 13; i++) {
+							for(int j = 1; j < 13; j++) {
+								if(knownArea.getExploredMap()[i][j].getType() == 'U') {
+									
+									AStar star = new AStar(knownArea.getExploredMap(), knownArea.getMyZone(), knownArea.getExploredMap()[i][j]);
+									
+									if(closestPath == null) {
+										closestPath = star.aStar();
+										bestPathCost = closestPath.get(0).getF();
+									}
+									else {
+										List<Zone> candidatePath = star.aStar();
+										
+										if(candidatePath.get(0).getF() < bestPathCost) {
+											closestPath = candidatePath;
+											bestPathCost = candidatePath.get(0).getF();
+										}
+									}
+									
+									for(int k = 1; k < 13; k++) {
+										for(int l = 1; l < 13; l++) {
+											knownArea.getExploredMap()[k][l].setF(-1);
+											knownArea.getExploredMap()[k][l].setG(-1);
+											knownArea.getExploredMap()[k][l].setParent(null);
+										}
+									}
+								}
+							}
+						}
+						
+						aStarPath = closestPath;
+						
+						if(aStarPath != null && aStarPath.size() > 1) {
+							aStarPath.remove(aStarPath.size()-1); // Getting rid of position she's in
+							Zone nextDestination = aStarPath.remove(aStarPath.size()-1);
+							sendKnowledgeToProlog(13-nextDestination.getI(),nextDestination.getJ(),"nextDestination([",".");
+						}
+						else
+							aStarPath = null;
+					}
+				}
+				else if(!aStarPath.isEmpty()) {
+					if(action == 'M') {
+						Zone nextDestination = aStarPath.remove(aStarPath.size()-1);
+						sendKnowledgeToProlog(13-nextDestination.getI(),nextDestination.getJ(),"nextDestination([",".");
+					}
+				}
+				else if(action == 'M') {
+					aStarPath = null;
+					
+					// In case AStar is called again
+					for(int i = 1; i < 13; i++) {
+						for(int j = 1; j < 13; j++) {
+							knownArea.getExploredMap()[i][j].setF(-1);
+							knownArea.getExploredMap()[i][j].setG(-1);
+							knownArea.getExploredMap()[i][j].setParent(null);
+						}
+					}
+				}
 			}
 			else {
 				System.err.println("JAVA -> PROLOG COMMUNICATION PROBLEM");
@@ -239,7 +340,7 @@ public class GameLogic extends Thread {
 						if(knownArea.getExploredMap()[i][j].isVisited())
 							knownArea.getExploredMap()[i][j].setType('.');
 						else
-							knownArea.getExploredMap()[i][j].setType('u');
+							knownArea.getExploredMap()[i][j].setType('n');
 					}
 				}
 				else if(string.equals("doubt")){
@@ -293,15 +394,14 @@ public class GameLogic extends Thread {
 					
 					System.out.println("T" + " = " + solution[i].get("T").toString() + "\n");
 					
-					type = solution[i].get("T").toString().charAt(1);
-					
+					if(!solution[i].get("T").toString().contains("d"))
+						type = solution[i].get("T").toString().charAt(1);
+					else
+						type = solution[i].get("T").toString().charAt(0);
+						
 					if(type == 'P' && string.contains("danger")) {
-						if(knownArea.getExploredMap()[posX][posY].isVisited()) {
-							knownArea.getExploredMap()[posX][posY].setHoleDoubt(false);
-							knownArea.getExploredMap()[posX][posY].setType('P');
-						}
-						else
-							knownArea.getExploredMap()[posX][posY].setHoleDoubt(true);
+						knownArea.getExploredMap()[posX][posY].setHoleDoubt(false);
+						knownArea.getExploredMap()[posX][posY].setType('P');
 					}
 					else if(type == 'P' && string.contains("doubt"))
 						knownArea.getExploredMap()[posX][posY].setHoleDoubt(true);
@@ -353,7 +453,7 @@ public class GameLogic extends Thread {
 					else if(string.contains("visited")) {
 						if(posX > 0 && posX < 13 && posY > 0 && posY < 13) {
 							knownArea.getExploredMap()[posX][posY].setVisited();
-							if(knownArea.getExploredMap()[posX][posY].getType() == 'u')
+							if(knownArea.getExploredMap()[posX][posY].getType() == 'n')
 								knownArea.getExploredMap()[posX][posY].setType('.');
 						}
 					}
@@ -377,9 +477,9 @@ public class GameLogic extends Thread {
 			command = command.concat(Integer.toString(i));
 			command = command.concat("|");
 			command = command.concat(Integer.toString(j));
-			command = command.concat("],'");
+			command = command.concat("],\'");
 			command = command.concat(type);
-			command = command.concat("'))");
+			command = command.concat("\'))");
 			
 			q2 = new Query(command);
 			Map<String, Term>[] solution = q2.allSolutions();
@@ -389,9 +489,9 @@ public class GameLogic extends Thread {
 			command = command.concat(Integer.toString(i));
 			command = command.concat("|");
 			command = command.concat(Integer.toString(j));
-			command = command.concat("],'");
+			command = command.concat("],\'");
 			command = command.concat(type);
-			command = command.concat("'))");
+			command = command.concat("\'))");
 			
 			q2 = new Query(command);
 		}
@@ -402,7 +502,7 @@ public class GameLogic extends Thread {
 				command = command.concat(Integer.toString(i));
 				command = command.concat("|");
 				command = command.concat(Integer.toString(j));
-				command = command.concat("],'d'))");
+				command = command.concat("],\'d\'))");
 			
 				q2 = new Query(command);
 				Map<String, Term>[] solution = q2.allSolutions();
@@ -412,7 +512,7 @@ public class GameLogic extends Thread {
 				command = command.concat(Integer.toString(i));
 				command = command.concat("|");
 				command = command.concat(Integer.toString(j));
-				command = command.concat("],'D'))");
+				command = command.concat("],\'D\'))");
 			
 				q2 = new Query(command);
 			}
@@ -421,9 +521,9 @@ public class GameLogic extends Thread {
 				command = command.concat(Integer.toString(i));
 				command = command.concat("|");
 				command = command.concat(Integer.toString(j));
-				command = command.concat("],'");
+				command = command.concat("],\'");
 				command = command.concat(type);
-				command = command.concat("'))");
+				command = command.concat("\'))");
 			
 				q2 = new Query(command);
 			}
@@ -447,6 +547,16 @@ public class GameLogic extends Thread {
 			command = command.concat(",");
 			command = command.concat(Integer.toString(knownArea.getMyZone().getSamus().getScore()));
 			command = command.concat("))");
+			
+			q2 = new Query(command);
+		}
+		else if(name.contains("nextDestination")) {
+			
+			String command = new String("assert(").concat(name);
+			command = command.concat(Integer.toString(i));
+			command = command.concat("|");
+			command = command.concat(Integer.toString(j));
+			command = command.concat("]))");
 			
 			q2 = new Query(command);
 		}
@@ -653,12 +763,6 @@ public class GameLogic extends Thread {
 			// INFORM PROLOG ABOUT DANGER, IF IT'S NOT A FACT ALREADY
 			// INFORM PROLOG THERE'S NO DOUBTS ANYMORE, IF THERE WERE ANY ABOUT THIS DANGER
 			sendKnowledgeToProlog(13-posX,posY,"samus([",".");
-			
-			if(knownArea.getMyZone().getSamus().getHealth() <= 80){
-				
-				// TODO CALL METHOD TO SEARCH FOR HEALTH (ASTAR), WITH IT'S OWN LOOP UNTIL THE HEALTH IS REACHED
-				
-			}
 		}
 		else if(Cave.getZones()[posX][posY].getType() == 'T') {
 			
