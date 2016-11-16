@@ -39,6 +39,8 @@ visited( [1 | 1] ).
 lastPosition( [1 | 1] ).
 goldLeftToTake(3).
 
+toVisit([4|10]).
+
 
 %%%%%		Main Rules			%%%%%
 %% Actions rule, this is the one Java calls to perform an action
@@ -46,17 +48,21 @@ goldLeftToTake(3).
 action( A ) :-	goldLeftToTake(N), N == 0, samus([X1 | Y1],_,_,_,_), X1 == 1, Y1 == 1, % Here checks if it can climb
 				statusChange('S', -1), passInformation(A, 'C'), !.
 
-action( A ) :-	factor_bump, % Here checks first for bump, if false...
+action( A ) :-	undo_doubt,
 	     		grab(A1), passInformation(A, A1), !.
-action( A ) :-	factor_scream, % ...then checks for scream, if also false...
+action( A ) :-	factor_bump,
 	     		grab(A1), passInformation(A, A1), !.
-action( A ) :-	grab(A1), passInformation(A, A1), !. % ...just takes action
+action( A ) :-	factor_scream,
+	     		grab(A1), passInformation(A, A1), !.
+action( A ) :-	grab(A1), passInformation(A, A1), !.
 
-action( A ) :-	factor_bump, % Here checks first for bump, if false...
+action( A ) :-	undo_doubt,
 	     		move(A1), passInformation(A, A1), !.
-action( A ) :-	factor_scream, % ...then checks for scream, if also false...
+action( A ) :-	factor_bump,
 	     		move(A1), passInformation(A, A1), !.
-action( A ) :-	move(A1), passInformation(A, A1), !. % ...just takes action
+action( A ) :-	factor_scream,
+	     		move(A1), passInformation(A, A1), !.
+action( A ) :-	move(A1), passInformation(A, A1), !.
 
 
 
@@ -79,7 +85,7 @@ moveToDestination( M ) :-	turnRight, M = 'D', !.
 
 
 
-%% Factor to verify and correct the bump effect
+%% Rule to verify and correct the bump feeling
 factor_bump :-	samus(P,_,_,_,_),
 				bump(P),
 				%retract(visited(P)),
@@ -88,15 +94,67 @@ factor_bump :-	samus(P,_,_,_,_),
 
 
 
-factor_scream :- samus([ I | J ],D,_,_,_),
-		(
-			D == 1, T is I + 1, L = [ T | J ];  
-		  	D == 2, T is I - 1, L = [ T | J ]; 
-		  	D == 3, T is J - 1, L = [ I | T ]; 
-		  	D == 4, T is J + 1, L = [ I | T ]
-		
-		), scream(L), retract(scream(L)), (retract(danger(L,_)) ; retract(doubt(L,_))), !.
-		
+%% Rule to verify and treat the scream feeling
+factor_scream :-	samus([ I | J ],D,_,_,_),
+					(
+					D == 1, T is I + 1, L = [ T | J ];  
+		  			D == 2, T is I - 1, L = [ T | J ]; 
+		  			D == 3, T is J - 1, L = [ I | T ]; 
+		  			D == 4, T is J + 1, L = [ I | T ]
+					), scream(L), retract(scream(L)), (retract(danger(L,_)) ; retract(doubt(L,_))), !.
+
+
+
+%% Rule to check for doubts and undo them
+undo_doubt :-	agent_neighbors, samus(P,_,_,_,_),
+				neighbor01(X1, Y1), neighbor02(X2, Y2),
+				neighbor03(X3, Y3), neighbor04(X4, Y4),
+				doubt([X1 | Y1], D),
+				((D == 'T', (\+flash(P), retract(doubt([X1 | Y1], D)) ;
+							\+doubt([X2 | Y2], D), \+doubt([X3 | Y3], D), \+doubt([X4 | Y4], D), retract(doubt([X1 | Y1], D)), assert(danger([X1 | Y1], D))));
+				(D == 'P', (\+breeze(P), retract(doubt([X1 | Y1], D)) ;
+							\+doubt([X2 | Y2], D), \+doubt([X3 | Y3], D), \+doubt([X4 | Y4], D), retract(doubt([X1 | Y1], D)), assert(danger([X1 | Y1], D))));
+				(D == 'd', (\+sound(P), retract(doubt([X1 | Y1], D)) ;
+							\+doubt([X2 | Y2], D), \+doubt([X3 | Y3], D), \+doubt([X4 | Y4], D), retract(doubt([X1 | Y1], D)), assert(danger([X1 | Y1], D))));
+				(D == 'D', (\+sound(P), retract(doubt([X1 | Y1], D)) ;
+							\+doubt([X2 | Y2], D), \+doubt([X3 | Y3], D), \+doubt([X4 | Y4], D), retract(doubt([X1 | Y1], D)), assert(danger([X1 | Y1], D))))).
+undo_doubt :-	agent_neighbors, samus(P,_,_,_,_),
+				neighbor01(X1, Y1), neighbor02(X2, Y2),
+				neighbor03(X3, Y3), neighbor04(X4, Y4),
+				doubt([X2 | Y2], D),
+				((D == 'T', (\+flash(P), retract(doubt([X2 | Y2], D)) ;
+							\+doubt([X1 | Y1], D), \+doubt([X3 | Y3], D), \+doubt([X4 | Y4], D), retract(doubt([X2 | Y2], D)), assert(danger([X2 | Y2], D))));
+				(D == 'P', (\+breeze(P), retract(doubt([X2 | Y2], D)) ;
+							\+doubt([X1 | Y1], D), \+doubt([X3 | Y3], D), \+doubt([X4 | Y4], D), retract(doubt([X2 | Y2], D)), assert(danger([X2 | Y2], D))));
+				(D == 'd', (\+sound(P), retract(doubt([X2 | Y2], D)) ;
+							\+doubt([X1 | Y1], D), \+doubt([X3 | Y3], D), \+doubt([X4 | Y4], D), retract(doubt([X2 | Y2], D)), assert(danger([X2 | Y2], D))));
+				(D == 'D', (\+sound(P), retract(doubt([X2 | Y2], D)) ;
+							\+doubt([X1 | Y1], D), \+doubt([X3 | Y3], D), \+doubt([X4 | Y4], D), retract(doubt([X2 | Y2], D)), assert(danger([X2 | Y2], D))))).
+undo_doubt :-	agent_neighbors, samus(P,_,_,_,_),
+				neighbor01(X1, Y1), neighbor02(X2, Y2),
+				neighbor03(X3, Y3), neighbor04(X4, Y4),
+				doubt([X3 | Y3], D),
+				((D == 'T', (\+flash(P), retract(doubt([X3 | Y3], D)) ;
+							\+doubt([X2 | Y2], D), \+doubt([X1 | Y1], D), \+doubt([X4 | Y4], D), retract(doubt([X3 | Y3], D)), assert(danger([X3 | Y3], D))));
+				(D == 'P', (\+breeze(P), retract(doubt([X3 | Y3], D)) ;
+							\+doubt([X2 | Y2], D), \+doubt([X1 | Y1], D), \+doubt([X4 | Y4], D), retract(doubt([X3 | Y3], D)), assert(danger([X3 | Y3], D))));
+				(D == 'd', (\+sound(P), retract(doubt([X3 | Y3], D)) ;
+							\+doubt([X2 | Y2], D), \+doubt([X1 | Y1], D), \+doubt([X4 | Y4], D), retract(doubt([X3 | Y3], D)), assert(danger([X3 | Y3], D))));
+				(D == 'D', (\+sound(P), retract(doubt([X3 | Y3], D)) ;
+							\+doubt([X2 | Y2], D), \+doubt([X1 | Y1], D), \+doubt([X4 | Y4], D), retract(doubt([X3 | Y3], D)), assert(danger([X3 | Y3], D))))).
+undo_doubt :-	agent_neighbors, samus(P,_,_,_,_),
+				neighbor01(X1, Y1), neighbor02(X2, Y2),
+				neighbor03(X3, Y3), neighbor04(X4, Y4),
+				doubt([X4 | Y4], D),
+				((D == 'T', (\+flash(P), retract(doubt([X4 | Y4], D)) ;
+							\+doubt([X2 | Y2], D), \+doubt([X3 | Y3], D), \+doubt([X1 | Y1], D), retract(doubt([X4 | Y4], D)), assert(danger([X4 | Y4], D))));
+				(D == 'P', (\+breeze(P), retract(doubt([X4 | Y4], D)) ;
+							\+doubt([X2 | Y2], D), \+doubt([X3 | Y3], D), \+doubt([X1 | Y1], D), retract(doubt([X4 | Y4], D)), assert(danger([X4 | Y4], D))));
+				(D == 'd', (\+sound(P), retract(doubt([X4 | Y4], D)) ;
+							\+doubt([X2 | Y2], D), \+doubt([X3 | Y3], D), \+doubt([X1 | Y1], D), retract(doubt([X4 | Y4], D)), assert(danger([X4 | Y4], D))));
+				(D == 'D', (\+sound(P), retract(doubt([X4 | Y4], D)) ;
+							\+doubt([X2 | Y2], D), \+doubt([X3 | Y3], D), \+doubt([X1 | Y1], D), retract(doubt([X4 | Y4], D)), assert(danger([X4 | Y4], D))))).
+
 		
 		
 %% Grab object rule, if there's a gold or a healing item where she stands
@@ -268,48 +326,44 @@ goforwardToExit :- samus( [I | J], D, _, _, _ ),
 mark_doubts :- 	agent_neighbors,
 				neighbor01(X1, Y1), neighbor02(X2, Y2),
 				neighbor03(X3, Y3), neighbor04(X4, Y4),
-				danger([X1 | Y1], D1), (danger([X2 | Y2], D1) ; danger([X3 | Y3], D1) ; danger([X4 | Y4], D1)),
-				((danger([X2 | Y2], D1), assert(doubt([X2 | Y2], D1)) /*,retract(danger([X2 | Y2], D))*/ );
-				(danger([X3 | Y3], D1), assert(doubt([X3 | Y3], D1)) /*,retract(danger([X3 | Y3], D))*/ );
-				(danger([X4 | Y4], D1), assert(doubt([X4 | Y4], D1)) /*,retract(danger([X4 | Y4], D))*/ )),
-				assert(doubt([X1 | Y1], D1)) /*,retract(danger([X1 | Y1], D))*/ .
-				%free_neighbors.
+				danger([X1 | Y1], D), (danger([X2 | Y2], D) ; danger([X3 | Y3], D) ; danger([X4 | Y4], D)),
+				assert(doubt([X1 | Y1], D)), retract(danger([X1 | Y1], D)),
+				((danger([X2 | Y2], D), assert(doubt([X2 | Y2], D)) ,retract(danger([X2 | Y2], D)) );
+				(danger([X3 | Y3], D), assert(doubt([X3 | Y3], D)) ,retract(danger([X3 | Y3], D)) );
+				(danger([X4 | Y4], D), assert(doubt([X4 | Y4], D)) ,retract(danger([X4 | Y4], D)) )).
 mark_doubts :- 	agent_neighbors,
 				neighbor01(X1, Y1), neighbor02(X2, Y2),
 				neighbor03(X3, Y3), neighbor04(X4, Y4),
-				danger([X2 | Y2], D2), (danger([X1 | Y1], D2) ; danger([X3 | Y3], D2) ; danger([X4 | Y4], D2)),
-				((danger([X1 | Y1], D2), assert(doubt([X1 | Y1], D2)) /*,retract(danger([X2 | Y2], D))*/ );
-				(danger([X3 | Y3], D2), assert(doubt([X3 | Y3], D2)) /*,retract(danger([X3 | Y3], D))*/ );
-				(danger([X4 | Y4], D2), assert(doubt([X4 | Y4], D2)) /*,retract(danger([X4 | Y4], D))*/ )),
-				assert(doubt([X2 | Y2], D2)) /*,retract(danger([X1 | Y1], D))*/.
-				%free_neighbors.
+				danger([X2 | Y2], D), (danger([X1 | Y1], D) ; danger([X3 | Y3], D) ; danger([X4 | Y4], D)),
+				assert(doubt([X2 | Y2], D)), retract(danger([X2 | Y2], D)),
+				((danger([X1 | Y1], D), assert(doubt([X1 | Y1], D)) ,retract(danger([X1 | Y1], D)) );
+				(danger([X3 | Y3], D), assert(doubt([X3 | Y3], D)) ,retract(danger([X3 | Y3], D)) );
+				(danger([X4 | Y4], D), assert(doubt([X4 | Y4], D)) ,retract(danger([X4 | Y4], D)) )).
 mark_doubts :- 	agent_neighbors,
 				neighbor01(X1, Y1), neighbor02(X2, Y2),
 				neighbor03(X3, Y3), neighbor04(X4, Y4),
-				danger([X3 | Y3], D3), (danger([X2 | Y2], D3) ; danger([X1 | Y1], D3) ; danger([X4 | Y4], D3)),
-				((danger([X2 | Y2], D3), assert(doubt([X2 | Y2], D3)) /*,retract(danger([X2 | Y2], D))*/ );
-				(danger([X1 | Y1], D3), assert(doubt([X1 | Y1], D3)) /*,retract(danger([X3 | Y3], D))*/ );
-				(danger([X4 | Y4], D3), assert(doubt([X4 | Y4], D3)) /*,retract(danger([X4 | Y4], D))*/ )),
-				assert(doubt([X3 | Y3], D3)) /*,retract(danger([X1 | Y1], D))*/.
-				%free_neighbors.
+				danger([X3 | Y3], D), (danger([X2 | Y2], D) ; danger([X1 | Y1], D) ; danger([X4 | Y4], D)),
+				assert(doubt([X3 | Y3], D)), retract(danger([X3 | Y3], D)),
+				((danger([X2 | Y2], D), assert(doubt([X2 | Y2], D)) ,retract(danger([X2 | Y2], D)) );
+				(danger([X1 | Y1], D), assert(doubt([X1 | Y1], D)) ,retract(danger([X1 | Y1], D)) );
+				(danger([X4 | Y4], D), assert(doubt([X4 | Y4], D)) ,retract(danger([X4 | Y4], D)) )).
 mark_doubts :- 	agent_neighbors,
 				neighbor01(X1, Y1), neighbor02(X2, Y2),
 				neighbor03(X3, Y3), neighbor04(X4, Y4),
-				danger([X4 | Y4], D4), (danger([X2 | Y2], D4) ; danger([X3 | Y3], D4) ; danger([X1 | Y1], D4)),
-				((danger([X2 | Y2], D4), assert(doubt([X2 | Y2], D4)) /*,retract(danger([X2 | Y2], D))*/ );
-				(danger([X3 | Y3], D4), assert(doubt([X3 | Y3], D4)) /*,retract(danger([X3 | Y3], D))*/ );
-				(danger([X1 | Y1], D4), assert(doubt([X1 | Y1], D4)) /*,retract(danger([X4 | Y4], D))*/ )),
-				assert(doubt([X4 | Y4], D4)) /*,retract(danger([X1 | Y1], D))*/.
-				%free_neighbors.
+				danger([X4 | Y4], D), (danger([X2 | Y2], D) ; danger([X3 | Y3], D) ; danger([X1 | Y1], D)),
+				assert(doubt([X4 | Y4], D)), retract(danger([X4 | Y4], D)),
+				((danger([X2 | Y2], D), assert(doubt([X2 | Y2], D)) ,retract(danger([X2 | Y2], D)) );
+				(danger([X3 | Y3], D), assert(doubt([X3 | Y3], D)) ,retract(danger([X3 | Y3], D)) );
+				(danger([X1 | Y1], D), assert(doubt([X1 | Y1], D)) ,retract(danger([X1 | Y1], D)) )).
 
 
 
 %% Sentindo uma BRISA. Perigo fatal!
 feel_breeze :- agent_neighbors,
-			( neighbor01(X, Y), check_neighbor(X, Y), \+ danger([ X | Y ], 'P'), assert( danger([ X | Y ], 'P')));
-			( neighbor02(X, Y), check_neighbor(X, Y), \+ danger([ X | Y ], 'P'), assert( danger([ X | Y ], 'P')));
-			( neighbor03(X, Y), check_neighbor(X, Y), \+ danger([ X | Y ], 'P'), assert( danger([ X | Y ], 'P')));
-			( neighbor04(X, Y), check_neighbor(X, Y), \+ danger([ X | Y ], 'P'), assert( danger([ X | Y ], 'P')));
+			( neighbor01(X1, Y1), check_neighbor(X1, Y1), \+ danger([ X1 | Y1 ], 'P'), \+ doubt([ X1 | Y1 ], 'P'), assert( danger([ X1 | Y1 ], 'P')));
+			( neighbor02(X2, Y2), check_neighbor(X2, Y2), \+ danger([ X2 | Y2 ], 'P'), \+ doubt([ X2 | Y2 ], 'P'), assert( danger([ X2 | Y2 ], 'P')));
+			( neighbor03(X3, Y3), check_neighbor(X3, Y3), \+ danger([ X3 | Y3 ], 'P'), \+ doubt([ X3 | Y3 ], 'P'), assert( danger([ X3 | Y3 ], 'P')));
+			( neighbor04(X4, Y4), check_neighbor(X4, Y4), \+ danger([ X4 | Y4 ], 'P'), \+ doubt([ X4 | Y4 ], 'P'), assert( danger([ X4 | Y4 ], 'P')));
 			%( free_neighbors );
     		!.
 
@@ -317,10 +371,10 @@ feel_breeze :- agent_neighbors,
 
 %% Sentindo NADA. Tambem ATUALIZO a lista de PERIGOS e DUVIDAS.
 feel_free :- agent_neighbors,
-			( neighbor01(X, Y), check_neighbor(X, Y), assert(toVisit([ X | Y ])), ( danger([ X | Y ], _), retract(danger([ X | Y ], _))) /*, ( doubt([ X | Y ], _), retract(doubt([ X | Y ], _)))*/ );
-			( neighbor02(X, Y), check_neighbor(X, Y), assert(toVisit([ X | Y ])), ( danger([ X | Y ], _), retract(danger([ X | Y ], _))) /*, ( doubt([ X | Y ], _), retract(doubt([ X | Y ], _)))*/ );
-			( neighbor03(X, Y), check_neighbor(X, Y), assert(toVisit([ X | Y ])), ( danger([ X | Y ], _), retract(danger([ X | Y ], _))) /*, ( doubt([ X | Y ], _), retract(doubt([ X | Y ], _)))*/ );
-			( neighbor04(X, Y), check_neighbor(X, Y), assert(toVisit([ X | Y ])), ( danger([ X | Y ], _), retract(danger([ X | Y ], _))) /*, ( doubt([ X | Y ], _), retract(doubt([ X | Y ], _)))*/ );
+			( neighbor01(X1, Y1), check_neighbor(X1, Y1), assert(toVisit([ X1 | Y1 ])), ( danger([ X1 | Y1 ], _), retract(danger([ X1 | Y1 ], _))) , ( doubt([ X1 | Y1 ], _), retract(doubt([ X1 | Y1 ], _))) );
+			( neighbor02(X2, Y2), check_neighbor(X2, Y2), assert(toVisit([ X2 | Y2 ])), ( danger([ X2 | Y2 ], _), retract(danger([ X2 | Y2 ], _))) , ( doubt([ X2 | Y2 ], _), retract(doubt([ X2 | Y2 ], _))) );
+			( neighbor03(X3, Y3), check_neighbor(X3, Y3), assert(toVisit([ X3 | Y3 ])), ( danger([ X3 | Y3 ], _), retract(danger([ X3 | Y3 ], _))) , ( doubt([ X3 | Y3 ], _), retract(doubt([ X3 | Y3 ], _))) );
+			( neighbor04(X4, Y4), check_neighbor(X4, Y4), assert(toVisit([ X4 | Y4 ])), ( danger([ X4 | Y4 ], _), retract(danger([ X4 | Y4 ], _))) , ( doubt([ X4 | Y4 ], _), retract(doubt([ X4 | Y4 ], _))) );
 			%( free_neighbors ),
     		!.
 
@@ -328,10 +382,10 @@ feel_free :- agent_neighbors,
 
 %% Sentindo FLASH.
 feel_flash :- agent_neighbors,
-			( neighbor01(X, Y), check_neighbor(X, Y), \+ danger([ X | Y ], 'T'), assert( danger([ X | Y ], 'T')) );
-			( neighbor02(X, Y), check_neighbor(X, Y), \+ danger([ X | Y ], 'T'), assert( danger([ X | Y ], 'T')) );
-			( neighbor03(X, Y), check_neighbor(X, Y), \+ danger([ X | Y ], 'T'), assert( danger([ X | Y ], 'T')) );
-			( neighbor04(X, Y), check_neighbor(X, Y), \+ danger([ X | Y ], 'T'), assert( danger([ X | Y ], 'T')) );
+			( neighbor01(X1, Y1), check_neighbor(X1, Y1), \+danger([ X1 | Y1 ], 'T'), \+doubt([ X1 | Y1 ], 'T'), assert( danger([ X1 | Y1 ], 'T')) );
+			( neighbor02(X2, Y2), check_neighbor(X2, Y2), \+danger([ X2 | Y2 ], 'T'), \+doubt([ X2 | Y2 ], 'T'), assert( danger([ X2 | Y2 ], 'T')) );
+			( neighbor03(X3, Y3), check_neighbor(X3, Y3), \+danger([ X3 | Y3 ], 'T'), \+doubt([ X3 | Y3 ], 'T'), assert( danger([ X3 | Y3 ], 'T')) );
+			( neighbor04(X4, Y4), check_neighbor(X4, Y4), \+danger([ X4 | Y4 ], 'T'), \+doubt([ X4 | Y4 ], 'T'), assert( danger([ X4 | Y4 ], 'T')) );
 			%( free_neighbors );
     		!.
 
@@ -339,44 +393,56 @@ feel_flash :- agent_neighbors,
 
 %% Sentindo SOM DE PASSOS.
 feel_sound :- agent_neighbors,
-			( neighbor01(X, Y), check_neighbor(X, Y), \+ danger([ X | Y ], 'D'), assert( danger([ X | Y ], 'D')) );
-			( neighbor02(X, Y), check_neighbor(X, Y), \+ danger([ X | Y ], 'D'), assert( danger([ X | Y ], 'D')) );
-			( neighbor03(X, Y), check_neighbor(X, Y), \+ danger([ X | Y ], 'D'), assert( danger([ X | Y ], 'D')) );
-			( neighbor04(X, Y), check_neighbor(X, Y), \+ danger([ X | Y ], 'D'), assert( danger([ X | Y ], 'D')) );
+			( neighbor01(X1, Y1), check_neighbor(X1, Y1), (\+danger([ X1 | Y1 ], 'D') ; \+danger([ X1 | Y1 ], 'd')), (\+doubt([ X1 | Y1 ], 'D') ; \+doubt([ X1 | Y1 ], 'd')), assert( danger([ X1 | Y1 ], 'D')) );
+			( neighbor02(X2, Y2), check_neighbor(X2, Y2), (\+danger([ X2 | Y2 ], 'D') ; \+danger([ X2 | Y2 ], 'd')), (\+doubt([ X2 | Y2 ], 'D') ; \+doubt([ X2 | Y2 ], 'd')), assert( danger([ X2 | Y2 ], 'D')) );
+			( neighbor03(X3, Y3), check_neighbor(X3, Y3), (\+danger([ X3 | Y3 ], 'D') ; \+danger([ X3 | Y3 ], 'd')), (\+doubt([ X3 | Y3 ], 'D') ; \+doubt([ X3 | Y3 ], 'd')), assert( danger([ X3 | Y3 ], 'D')) );
+			( neighbor04(X4, Y4), check_neighbor(X4, Y4), (\+danger([ X4 | Y4 ], 'D') ; \+danger([ X4 | Y4 ], 'd')), (\+doubt([ X4 | Y4 ], 'D') ; \+doubt([ X4 | Y4 ], 'd')), assert( danger([ X4 | Y4 ], 'D')) );
 			%( free_neighbors );
     		!.
 
 
 
 %% MOVIMENTO sem PERIGO
-moveFree(M) :- feel_free,
-    	       goforwardToVisit, M = 'M', !.
+moveFree(M) :- (feel_free,
+    	       goforwardToVisit, M = 'M', !) ;
+				(goforwardToVisit, M = 'M'), !.
                %turnRight, M = 'D', !.
 
 
 
 %% MOVIMENTO para BRISA
-moveBreeze(M) :- 	feel_breeze, %mark_doubts,
-                 	goforwardToVisit, M = 'M', !;
-    		 		goforwardToVisited, M = 'M', !;
-		 			turnRight, M = 'D', !.
+moveBreeze(M) :- 	(feel_breeze, mark_doubts,
+                 	goforwardToVisit, M = 'M', !) ;
+					(feel_breeze, mark_doubts,
+    		 		goforwardToVisited, M = 'M', !) ;
+    		 		goforwardToVisit, M = 'M', ! ;
+    		 		goforwardToVisited, M = 'M', !.
+		 			%turnRight, M = 'D', !.
 		         		
    	
 
 %% MOVIMENTO com FLASH
-moveFlash(M) :- feel_flash, %mark_doubts,
-           		goforwardToVisit, M = 'M', !;
-    			goforwardToVisited, M = 'M', !;
-				turnRight, M = 'D', !. 
+moveFlash(M) :- (feel_flash, mark_doubts,
+           		goforwardToVisit, M = 'M', !) ;
+				(feel_flash, mark_doubts,
+    			goforwardToVisited, M = 'M', !) ;
+    			goforwardToVisit, M = 'M', !;
+    			goforwardToVisited, M = 'M', !.
+				%turnRight, M = 'D', !. 
 
 
 
 %% MOVIMENTO com SOM DE PASSOS
-moveSound(M) :- feel_sound, %mark_doubts,
-				goforwardToVisit, M = 'M', !;
-    			goforwardToVisited, M = 'M', !;	
-    			goforwardToMonster, M = 'M', !;
-    			turnRight, M = 'D', !.
+moveSound(M) :- (feel_sound, mark_doubts,
+				goforwardToVisit, M = 'M', !);
+				(feel_sound, mark_doubts,
+    			goforwardToVisited, M = 'M', !);
+    			(feel_sound, mark_doubts,
+    			goforwardToMonster, M = 'M', !);
+    			goforwardToVisit, M = 'M', !;
+    			goforwardToVisited, M = 'M', !;
+    			goforwardToMonster, M = 'M', !.
+    			%turnRight, M = 'D', !.
 
 
 

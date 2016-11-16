@@ -232,6 +232,15 @@ public class GameLogic extends Thread {
 				
 				knownArea.repaint();
 				
+				
+				Query q3 = new Query("toVisit([X | Y])");
+				solution = q3.allSolutions();
+				
+				for (int i = 0; i < solution.length; i++)
+					System.out.println("\nTo Visit:\nI: " + solution[i].get("X").toString() + "\nJ: " + solution[i].get("Y").toString() + "\n");
+				
+				
+				
 				// Dealing with AStar situation
 				if(aStarPath == null) {
 					if(goldLeftToTake == 0) {
