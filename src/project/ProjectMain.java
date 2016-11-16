@@ -6,6 +6,6 @@ public class ProjectMain {
 
 	public static void main(String[] args) {
 		
-		WindowMaker window = new WindowMaker(50, 50, 600);
+		WindowMaker window = new WindowMaker(50, 50, 300);
 	}
 }

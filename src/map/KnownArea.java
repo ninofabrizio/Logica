@@ -276,9 +276,9 @@ public class KnownArea extends JPanel {
 				// Cave walls
 				else if(((i == 0 || i == 13) && (j >= 0 && j <= 13)) || ((j == 0 || j == 13) && (i >= 0 && i <= 13))) {
 					
-					if(exploredMap[i][j].getType() == 'w')
+					if(exploredMap[i][j].getType() != 'W')
 						g2d.setPaint(Color.GRAY);
-					else if(exploredMap[i][j].getType() == 'W')
+					else
 						g2d.setPaint(Color.RED);
 					
 					double xTemp = zoneWidth/2, yTemp = zoneHeight/2;
