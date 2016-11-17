@@ -19,6 +19,7 @@ public class KnownArea extends JPanel {
 	// 'e' == possible Pirate (small enemy) or Metroid (big enemy)
 	// 'r' == possible Ridley (teleport)
 	// 'w' == unknown wall
+	// 't' == zone to visit
 	
 	private static Zone exploredMap[][] = null;
 	private Zone myZone;
@@ -105,7 +106,16 @@ public class KnownArea extends JPanel {
 				// Cave content "between" the walls
 				if(i != 0 && i != 13 && j != 0 && j != 13) {
 					
-					if(!exploredMap[i][j].isVisited()) {
+					if(exploredMap[i][j].getType() == 't') {
+						try {
+							im = ImageIO.read(new File("img/possible_ground_tovisit.png"));
+						} catch (IOException e) {
+							System.out.println(e.getMessage());
+							System.exit(1);
+						}
+						g.drawImage(im, (int)xPos, (int)yPos, null);
+					}
+					else if(!exploredMap[i][j].isVisited()) {
 						try {
 							im = ImageIO.read(new File("img/possible_ground.png"));
 						} catch (IOException e) {
@@ -130,6 +140,12 @@ public class KnownArea extends JPanel {
 						g2d.setPaint(Color.BLACK);
 						g2d.fill(rt);
 					}
+					else if(exploredMap[i][j].isHoleDoubt()) {
+						
+						rt = new Rectangle2D.Double(xPos, yPos, zoneWidth, zoneHeight);
+						g2d.setPaint(Color.BLUE);
+						g2d.fill(rt);
+					}
 					else if(i == 12 && j == 1) {
 						
 						try {
@@ -150,7 +166,8 @@ public class KnownArea extends JPanel {
 						}
 						g.drawImage(im, (int)xPos, (int)yPos, null);
 					}
-					else if(exploredMap[i][j].getType() == 'd') {
+					
+					if(exploredMap[i][j].getType() == 'd') {
 						
 						try {
 							im = ImageIO.read(new File("img/pirate.png"));
@@ -180,13 +197,8 @@ public class KnownArea extends JPanel {
 						}
 						g.drawImage(im, (int)xPos, (int)yPos, null);
 					}
-					else if(exploredMap[i][j].isHoleDoubt()) {
-						
-						rt = new Rectangle2D.Double(xPos, yPos, zoneWidth, zoneHeight);
-						g2d.setPaint(Color.BLUE);
-						g2d.fill(rt);
-					}
-					else if(exploredMap[i][j].isDamageEnemyDoubt()) {
+					
+					if(exploredMap[i][j].isDamageEnemyDoubt()) {
 						
 						try {
 							im = ImageIO.read(new File("img/possible_metroid.png"));

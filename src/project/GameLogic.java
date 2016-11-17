@@ -2,7 +2,6 @@ package project;
 
 import gui.WindowMaker;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -13,8 +12,6 @@ import map.Zone;
 import org.jpl7.Atom;
 import org.jpl7.Query;
 import org.jpl7.Term;
-
-import characters.Enemy;
 
 public class GameLogic extends Thread {
 
@@ -35,47 +32,23 @@ public class GameLogic extends Thread {
 		q1.hasSolution();
 		
 		if(isSensationZone('p', 12, 1)) {
-			//showDoubt('p', 12, 1);
 			
-			// TODO INFORM SENSATION TO PROLOG
 			sendKnowledgeToProlog(13-12,1,"breeze([",".");
 			getKnowledgeFromProlog("breeze");
 			knownArea.repaint();
-			
-			try {
-				sleep(waitTime);
-			} catch (InterruptedException e) {
-				e.printStackTrace();
-			}
 		}
 		if(isSensationZone('e', 12, 1)) {
-			//showDoubt('e', 12, 1);
-			
-			// TODO INFORM SENSATION TO PROLOG
+
 			sendKnowledgeToProlog(13-12,1,"sound([",".");
 			getKnowledgeFromProlog("sound");
 			knownArea.repaint();
-			
-			try {
-				sleep(waitTime);
-			} catch (InterruptedException e) {
-				e.printStackTrace();
-			}
 		}
 		if(isSensationZone('r', 12, 1)) {
-			//showDoubt('r', 12, 1);
 			
-			// TODO INFORM SENSATION TO PROLOG
 			sendKnowledgeToProlog(13-12,1,"flash([",".");
 			getKnowledgeFromProlog("flash");
 			getKnowledgeFromProlog("doubt");
 			knownArea.repaint();
-			
-			try {
-				sleep(waitTime);
-			} catch (InterruptedException e) {
-				e.printStackTrace();
-			}
 		}
 
 		while(true) {
@@ -111,13 +84,16 @@ public class GameLogic extends Thread {
 
 						// Here enters the actions (letter)
 						if (j == 0 && term.arg(1).toString().contains("'")) {
+							
 							// System.out.println(term.arg(1).toString().charAt(1));
 							action = term.arg(1).toString().charAt(1);
 						}
 						// By being second iteration, I know that first argument is a list of [i,j] position
 						else if (j == 1 /* && action == 'M' */) {
+							
 							// System.out.println(term.arg(1).arg(1).toString());
 							posX = Integer.parseInt(term.arg(1).arg(1).toString());
+							
 							// System.out.println(term.arg(1).arg(2).toString());
 							posY = Integer.parseInt(term.arg(1).arg(2).toString());
 						}
@@ -142,7 +118,8 @@ public class GameLogic extends Thread {
 				knownArea.getMyZone().getSamus().setActionsTaken();
 				knownArea.getMyZone().getSamus().setScore(score);
 				WindowMaker.setGameInfoText(Integer.toString(knownArea.getMyZone().getSamus().getScore()),
-											Integer.toString(knownArea.getMyZone().getSamus().getActionsTaken()));
+											Integer.toString(knownArea.getMyZone().getSamus().getActionsTaken()),
+											Integer.toString(goldLeftToTake));
 
 				if(Cave.getZones()[posX][posY].getType() != 'W' && action == 'M') {
 					knownArea.getMyZone().getSamus().setI(posX);
@@ -171,6 +148,7 @@ public class GameLogic extends Thread {
 				getKnowledgeFromProlog("glitter");
 				getKnowledgeFromProlog("power_up");
 				getKnowledgeFromProlog("visited");
+				getKnowledgeFromProlog("toVisit");
 				
 				knownArea.repaint();
 				
@@ -199,30 +177,18 @@ public class GameLogic extends Thread {
 						
 						if(damageEnemy(enemyX, enemyY, knownArea.getMyZone().getSamus().tookAShot())) {
 							
-							char doubt = 0;
-							
-							if(Cave.getZones()[enemyX][enemyY].getType() == 'd') {
+							if(Cave.getZones()[enemyX][enemyY].getType() == 'd')
 								Cave.getZones()[enemyX][enemyY].setType('p');
-								doubt = 'e';
-							}
-							else if(Cave.getZones()[enemyX][enemyY].getType() == 'D') {
+							else if(Cave.getZones()[enemyX][enemyY].getType() == 'D')
 								Cave.getZones()[enemyX][enemyY].setType('m');
-								doubt = 'e';
-							}
-							else if(Cave.getZones()[enemyX][enemyY].getType() == 'T') {
+							else if(Cave.getZones()[enemyX][enemyY].getType() == 'T')
 								Cave.getZones()[enemyX][enemyY].setType('r');
-								doubt = 'r';
-							}
 							
 							knownArea.getExploredMap()[enemyX][enemyY].setType('.');
 							
 							Cave.getZones()[enemyX][enemyY].setEnemy(null);
 							knownArea.getExploredMap()[enemyX][enemyY].setEnemy(null);
 							
-							//updateDoubts(posX, posY, doubt);
-							
-							// TODO INFORM PROLOG SCREAM SENSATION
-							// PROLOG SHOULD UPDATE DANGERS AND/OR DOUBTS
 							sendKnowledgeToProlog(13-posX,posY,"scream([",".");
 						}
 					}
@@ -231,15 +197,6 @@ public class GameLogic extends Thread {
 					break;
 				
 				knownArea.repaint();
-				
-				
-				Query q3 = new Query("toVisit([X | Y])");
-				solution = q3.allSolutions();
-				
-				for (int i = 0; i < solution.length; i++)
-					System.out.println("\nTo Visit:\nI: " + solution[i].get("X").toString() + "\nJ: " + solution[i].get("Y").toString() + "\n");
-				
-				
 				
 				// Dealing with AStar situation
 				if(aStarPath == null) {
@@ -255,7 +212,7 @@ public class GameLogic extends Thread {
 						else
 							aStarPath = null;
 					}
-					else if(knownArea.getMyZone().getSamus().getHealth() <= 80) {
+					else if(knownArea.getMyZone().getSamus().getHealth() <= 50) {
 						
 						List<Zone> closestPath = null;
 						
@@ -268,10 +225,17 @@ public class GameLogic extends Thread {
 									
 									if(closestPath == null) {
 										closestPath = star.aStar();
+										
+										if(closestPath == null)
+											continue;
+										
 										bestPathCost = closestPath.get(0).getF();
 									}
 									else {
 										List<Zone> candidatePath = star.aStar();
+										
+										if(candidatePath == null)
+											continue;
 										
 										if(candidatePath.get(0).getF() < bestPathCost) {
 											closestPath = candidatePath;
@@ -369,6 +333,8 @@ public class GameLogic extends Thread {
 					knownArea.getExploredMap()[i][j].setType('.');
 				else if(string.equals("power_up") && knownArea.getExploredMap()[i][j].getType() == 'U')
 					knownArea.getExploredMap()[i][j].setType('.');
+				else if(string.equals("toVisit") && knownArea.getExploredMap()[i][j].getType() == 't')
+					knownArea.getExploredMap()[i][j].setType('n');
 			}
 		}
 		
@@ -379,6 +345,7 @@ public class GameLogic extends Thread {
 		
 		Query q2 = new Query(command);
 		
+		q2.hasSolution();
 		Map<String, Term>[] solution = q2.allSolutions();
 		
 		if (solution != null) {
@@ -414,31 +381,24 @@ public class GameLogic extends Thread {
 					}
 					else if(type == 'P' && string.contains("doubt"))
 						knownArea.getExploredMap()[posX][posY].setHoleDoubt(true);
-					else if(type == 'd') {
+					else if(type == 'd' && string.contains("danger")) {
 						knownArea.getExploredMap()[posX][posY].setType('d');
 						knownArea.getExploredMap()[posX][posY].setDamageEnemyDoubt(false);
-						if(Cave.getZones()[posX][posY].getEnemy() != null)
-							knownArea.getExploredMap()[posX][posY].setEnemy(Cave.getZones()[posX][posY].getEnemy());
-						else // TODO THIS SHOULDN'T BE HERE!
-							knownArea.getExploredMap()[posX][posY].setEnemy(new Enemy(posX, posY));
+						knownArea.getExploredMap()[posX][posY].setEnemy(Cave.getZones()[posX][posY].getEnemy());
 					}
-					else if(type == 'D') {
+					else if(type == 'D' && string.contains("danger")) {
 						knownArea.getExploredMap()[posX][posY].setType('D');
 						knownArea.getExploredMap()[posX][posY].setDamageEnemyDoubt(false);
 						if(Cave.getZones()[posX][posY].getEnemy() != null)
 							knownArea.getExploredMap()[posX][posY].setEnemy(Cave.getZones()[posX][posY].getEnemy());
-						else // TODO THIS SHOULDN'T BE HERE!
-							knownArea.getExploredMap()[posX][posY].setEnemy(new Enemy(posX, posY));
 					}
 					else if((type == 'd' || type == 'D') && string.contains("doubt"))
 						knownArea.getExploredMap()[posX][posY].setDamageEnemyDoubt(true);
-					else if(type == 'T') {
+					else if(type == 'T' && string.contains("danger")) {
 						knownArea.getExploredMap()[posX][posY].setType('T');
 						knownArea.getExploredMap()[posX][posY].setTeleportEnemyDoubt(false);
 						if(Cave.getZones()[posX][posY].getEnemy() != null)
 							knownArea.getExploredMap()[posX][posY].setEnemy(Cave.getZones()[posX][posY].getEnemy());
-						else // TODO THIS SHOULDN'T BE HERE!
-							knownArea.getExploredMap()[posX][posY].setEnemy(new Enemy(posX, posY));
 					}
 					else if(type == 'T' && string.contains("doubt"))
 						knownArea.getExploredMap()[posX][posY].setTeleportEnemyDoubt(true);
@@ -466,6 +426,9 @@ public class GameLogic extends Thread {
 								knownArea.getExploredMap()[posX][posY].setType('.');
 						}
 					}
+					else if(string.contains("toVisit"))
+						if(posX > 0 && posX < 13 && posY > 0 && posY < 13)
+							knownArea.getExploredMap()[posX][posY].setType('t');
 				}
 			}
 		}
@@ -482,82 +445,97 @@ public class GameLogic extends Thread {
 		
 		if(name.contains("danger")) {
 			
-			String command = new String("retract(").concat(name);
-			command = command.concat(Integer.toString(i));
-			command = command.concat("|");
-			command = command.concat(Integer.toString(j));
-			command = command.concat("],\'");
+			String command = name.concat("X | Y], \'");
 			command = command.concat(type);
-			command = command.concat("\'))");
+			command = command.concat("\')");
 			
-			q2 = new Query(command);
-			Map<String, Term>[] solution = q2.allSolutions();
-			System.out.println(q2.toString() + "\nSolutions: " + solution.length + "\n");
-			
-			command = new String("assert(").concat(name);
-			command = command.concat(Integer.toString(i));
-			command = command.concat("|");
-			command = command.concat(Integer.toString(j));
-			command = command.concat("],\'");
-			command = command.concat(type);
-			command = command.concat("\'))");
-			
-			q2 = new Query(command);
-		}
-		else if(name.contains("doubt")) {
-			
-			if(type.equals("e")) {
-				String command = new String("retract(").concat(name);
-				command = command.concat(Integer.toString(i));
-				command = command.concat("|");
-				command = command.concat(Integer.toString(j));
-				command = command.concat("],\'d\'))");
-			
-				q2 = new Query(command);
-				Map<String, Term>[] solution = q2.allSolutions();
-				System.out.println(q2.toString() + "\nSolutions: " + solution.length + "\n");
+			if(verifyFact(command, i, j)) {
 				
-				command = new String("retract(").concat(name);
-				command = command.concat(Integer.toString(i));
-				command = command.concat("|");
-				command = command.concat(Integer.toString(j));
-				command = command.concat("],\'D\'))");
-			
-				q2 = new Query(command);
-			}
-			else {
-				String command = new String("retract(").concat(name);
+				command = new String("assert(").concat(name);
 				command = command.concat(Integer.toString(i));
 				command = command.concat("|");
 				command = command.concat(Integer.toString(j));
 				command = command.concat("],\'");
 				command = command.concat(type);
 				command = command.concat("\'))");
-			
+				
 				q2 = new Query(command);
+				q2.hasSolution();
+				System.out.println(q2.toString() + "\n");
 			}
 		}
-		else if(name.contains("samus")) {
+		else if(name.contains("doubt")) {
 			
-			q2 = new Query("retract(samus(_,_,_,_,_))");
-			Map<String, Term>[] solution = q2.allSolutions();
-			System.out.println(q2.toString() + "\nSolutions: " + solution.length + "\n");
+			if(type.equals("e")) {
+				
+				String command = name.concat("X | Y], \'d\')");
+				
+				if(!verifyFact(command, i, j)) {
+				
+					command = new String("retract(").concat(name);
+					command = command.concat(Integer.toString(i));
+					command = command.concat("|");
+					command = command.concat(Integer.toString(j));
+					command = command.concat("],\'d\'))");
+
+					q2 = new Query(command);
+					q2.hasSolution();
+					System.out.println(q2.toString() + "\n");
+				}
+				
+				command = name.concat("X | Y], \'D\')");
+				
+				if(!verifyFact(command, i, j)) {
+				
+					command = new String("retract(").concat(name);
+					command = command.concat(Integer.toString(i));
+					command = command.concat("|");
+					command = command.concat(Integer.toString(j));
+					command = command.concat("],\'D\'))");
+
+					q2 = new Query(command);
+					q2.hasSolution();
+					System.out.println(q2.toString() + "\n");
+				}
+			}
+			else {
+				
+				String command = name.concat("X | Y], \'P\')");
+				
+				if(!verifyFact(command, i, j)) {
+				
+					command = new String("retract(").concat(name);
+					command = command.concat(Integer.toString(i));
+					command = command.concat("|");
+					command = command.concat(Integer.toString(j));
+					command = command.concat("],\'");
+					command = command.concat(type);
+					command = command.concat("\'))");
+
+					q2 = new Query(command);
+					q2.hasSolution();
+					System.out.println(q2.toString() + "\n");
+				}
+			}
+		}
+		else if(name.contains("statusChange")) {
 			
-			String command = new String("assert(").concat(name);
-			command = command.concat(Integer.toString(13-knownArea.getMyZone().getSamus().getI()));
-			command = command.concat("|");
-			command = command.concat(Integer.toString(knownArea.getMyZone().getSamus().getJ()));
-			command = command.concat("],");
-			command = command.concat(Integer.toString(knownArea.getMyZone().getSamus().getDirection()));
-			command = command.concat(",");
-			command = command.concat(Integer.toString(knownArea.getMyZone().getSamus().getHealth()));
-			command = command.concat(",");
-			command = command.concat(Integer.toString(knownArea.getMyZone().getSamus().getAmmo()));
-			command = command.concat(",");
-			command = command.concat(Integer.toString(knownArea.getMyZone().getSamus().getScore()));
-			command = command.concat("))");
+			String command = null;
+			
+			if(name.contains("\'P\'")) {
+				command = name.concat(Integer.toString(i));
+				command = command.concat("|");
+				command = command.concat(Integer.toString(j));
+				command = command.concat("])");
+			}
+			else if(name.contains("\'H\'")) {
+				command = name.concat(type);
+				command = command.concat(")");
+			}
 			
 			q2 = new Query(command);
+			q2.hasSolution();
+			System.out.println(q2.toString() + "\n");
 		}
 		else if(name.contains("nextDestination")) {
 			
@@ -568,34 +546,54 @@ public class GameLogic extends Thread {
 			command = command.concat("]))");
 			
 			q2 = new Query(command);
+			q2.hasSolution();
+			System.out.println(q2.toString() + "\n");
+		}
+		else if(name.contains("update_lastVisited")) {
+			
+			q2 = new Query("update_lastVisited");
+			q2.hasSolution();
+			System.out.println(q2.toString() + "\n");
 		}
 		else {
 			
-			String command = new String("retract(").concat(name);
-			command = command.concat(Integer.toString(i));
-			command = command.concat("|");
-			command = command.concat(Integer.toString(j));
-			command = command.concat("]))");
+			String command = name.concat("X | Y])");
 			
-			q2 = new Query(command);
-			Map<String, Term>[] solution = q2.allSolutions();
-			System.out.println(q2.toString() + "\nSolution: " + solution.length + "\n");
+			if(verifyFact(command, i, j)) {
 			
-			command = new String("assert(").concat(name);
-			command = command.concat(Integer.toString(i));
-			command = command.concat("|");
-			command = command.concat(Integer.toString(j));
-			command = command.concat("]))");
+				command = new String("assert(").concat(name);
+				command = command.concat(Integer.toString(i));
+				command = command.concat("|");
+				command = command.concat(Integer.toString(j));
+				command = command.concat("]))");
+
+				q2 = new Query(command);
+				q2.hasSolution();
+				System.out.println(q2.toString() + "\n");
+			}
+		}
+	}
+
+	private boolean verifyFact(String command, int posX, int posY) {
 		
-			q2 = new Query(command);
+		Query q2 = new Query(command);
+		System.out.println("Verify: " + q2.toString());
+		
+		Map<String, Term>[] solution = q2.allSolutions();
+
+		if (solution != null) {
+			
+			for(int i = 0; i < solution.length; i++) {
+				if(solution[i].get("X").toString().equals(Integer.toString(posX))
+					&& solution[i].get("Y").toString().equals(Integer.toString(posY))) {
+					System.out.println("Is in prolog!\n");
+					return false;
+				}
+			}
 		}
 		
-		if(q2.allSolutions() == null) {
-			System.err.println("JAVA -> PROLOG COMMUNICATION PROBLEM");
-			System.exit(1);
-		}
-		
-		System.out.println(q2.toString() + "\n");
+		System.out.println("Is not in prolog!\n");
+		return true;
 	}
 
 	// Returns true if game has to stop
@@ -603,99 +601,43 @@ public class GameLogic extends Thread {
 		
 		if((posX > 0 && posX < 13) && (posY > 0 && posY < 13) && isSensationZone('e', posX, posY)) {
 			
-			// TODO PUT DAMAGE MONSTER SENSATION IN PROLOG, IF NOT ALREADY THERE
 			sendKnowledgeToProlog(13-posX,posY,"sound([",".");
 			getKnowledgeFromProlog("sound");
-			
-			//showDoubt('e', posX, posY);
 		}
 		if((posX > 0 && posX < 13) && (posY > 0 && posY < 13) && isSensationZone('p', posX, posY)) {
 			
-			// TODO PUT HOLE SENSATION IN PROLOG, IF NOT ALREADY THERE
 			sendKnowledgeToProlog(13-posX,posY,"breeze([",".");
 			getKnowledgeFromProlog("breeze");
-			
-			//showDoubt('p', posX, posY);
 		}
 		if((posX > 0 && posX < 13) && (posY > 0 && posY < 13) && isSensationZone('r', posX, posY)) {
 			
-			// TODO PUT TELEPORT SENSATION IN PROLOG, IF NOT ALREADY THERE
 			sendKnowledgeToProlog(13-posX,posY,"flash([",".");
 			getKnowledgeFromProlog("flash");
-			
-			//showDoubt('r', posX, posY);
 		}
 		
 		if(knownArea.getMyZone().isDamageEnemyDoubt()) {
 
 			sendKnowledgeToProlog(13-posX,posY,"doubt([","e");
 			getKnowledgeFromProlog("doubt");
-			
-			// TODO INFORM PROLOG THIS SENSATION IS GONE AND TELL WHAT'S THERE
-	
-			/*if(Cave.getZones()[posX][posY].getType() != 'd' && 
-					Cave.getZones()[posX][posY].getType() != 'D'  && countDoubts(posX, posY, 'e') == 1) {
-				
-				int lastDoubtX = getDoubtXPos(posX,posY,'e');
-				int lastDoubtY = getDoubtYPos(posX,posY,'e');
-				
-				if(Cave.getZones()[lastDoubtX][lastDoubtY].getType() == 'd')
-					knownArea.getExploredMap()[lastDoubtX][lastDoubtY].setType('d');
-				else if(Cave.getZones()[lastDoubtX][lastDoubtY].getType() == 'D')
-					knownArea.getExploredMap()[lastDoubtX][lastDoubtY].setType('D');
-				knownArea.getExploredMap()[lastDoubtX][lastDoubtY].setEnemy(Cave.getZones()[lastDoubtX][lastDoubtY].getEnemy());
-				
-				// TODO INFORM PROLOG THAT DANGER IS FOUND (LAST DOUBT IS DANGER)
-				
-			}*/
 		}
 		if(knownArea.getMyZone().isHoleDoubt()) {
 
 			sendKnowledgeToProlog(13-posX,posY,"doubt([","P");
 			getKnowledgeFromProlog("doubt");
-			
-			// TODO INFORM PROLOG THIS SENSATION IS GONE
-	
-			/*if(Cave.getZones()[posX][posY].getType() != 'P' && countDoubts(posX, posY, 'p') == 1) {
-				
-				int lastDoubtX = getDoubtXPos(posX,posY,'p');
-				int lastDoubtY = getDoubtYPos(posX,posY,'p');
-				
-				knownArea.getExploredMap()[lastDoubtX][lastDoubtY].setType('P');
-				
-				// TODO INFORM PROLOG THAT DANGER IS FOUND (LAST DOUBT IS DANGER)
-				
-			}*/
 		}
 		if(knownArea.getMyZone().isTeleportEnemyDoubt()) {
 
 			sendKnowledgeToProlog(13-posX,posY,"doubt([","T");
 			getKnowledgeFromProlog("doubt");
-			
-			// TODO INFORM PROLOG THIS SENSATION IS GONE
-	
-			/*if(Cave.getZones()[posX][posY].getType() != 'T' && countDoubts(posX, posY, 'r') == 1) {
-				
-				int lastDoubtX = getDoubtXPos(posX,posY,'r');
-				int lastDoubtY = getDoubtYPos(posX,posY,'r');
-				
-				knownArea.getExploredMap()[lastDoubtX][lastDoubtY].setType('T');
-				knownArea.getExploredMap()[lastDoubtX][lastDoubtY].setEnemy(Cave.getZones()[lastDoubtX][lastDoubtY].getEnemy());
-				
-				// TODO INFORM PROLOG THAT DANGER IS FOUND (LAST DOUBT IS DANGER)
-				
-			}*/
 		}
 		
 		if(Cave.getZones()[posX][posY].getType() == 'O') {
 			
-			// TODO PUT GOLD SENSATION IN PROLOG
 			sendKnowledgeToProlog(13-posX,posY,"glitter([",".");
 			getKnowledgeFromProlog("glitter");
 		}
 		else if(Cave.getZones()[posX][posY].getType() == 'U') {
 			
-			// TODO PUT EXTRA HEALTH FACT IN PROLOG, IF NOT ALREADY THERE
 			if(knownArea.getExploredMap()[posX][posY].getType() != 'U') {
 				sendKnowledgeToProlog(13-posX,posY,"power_up([",".");
 				getKnowledgeFromProlog("power_up");
@@ -705,7 +647,8 @@ public class GameLogic extends Thread {
 			
 			knownArea.getMyZone().getSamus().setScore(knownArea.getMyZone().getSamus().getScore() - 1000);
 			WindowMaker.setGameInfoText(Integer.toString(knownArea.getMyZone().getSamus().getScore()),
-															Integer.toString(knownArea.getMyZone().getSamus().getActionsTaken()));
+															Integer.toString(knownArea.getMyZone().getSamus().getActionsTaken()),
+															Integer.toString(goldLeftToTake));
 			knownArea.getMyZone().getSamus().setHealth(0);
 			WindowMaker.setLifeBarValue(knownArea.getMyZone().getSamus().getHealth());
 			
@@ -714,18 +657,12 @@ public class GameLogic extends Thread {
 				getKnowledgeFromProlog("danger");
 			}
 			
-			//knownArea.getMyZone().setVisited();
-			//knownArea.getMyZone().setHoleDoubt(false);
-			//updateDoubts(posX, posY, 'p');
-			
 			return true;
 		}
 		else if(Cave.getZones()[posX][posY].getType() == 'd' || Cave.getZones()[posX][posY].getType() == 'D') {
 			
-			char e;
 			int d;
 			if(Cave.getZones()[posX][posY].getType() == 'd') {
-				e = 'd';
 				d = 20;
 				if(knownArea.getExploredMap()[posX][posY].getType() != 'd') {
 					sendKnowledgeToProlog(13-posX,posY,"danger([","d");
@@ -733,7 +670,6 @@ public class GameLogic extends Thread {
 				}
 			}
 			else {
-				e = 'D';
 				d = 50;
 				if(knownArea.getExploredMap()[posX][posY].getType() != 'D') {
 					sendKnowledgeToProlog(13-posX,posY,"danger([","D");
@@ -741,19 +677,11 @@ public class GameLogic extends Thread {
 				}
 			}
 			
-			/*if(knownArea.getMyZone().getType() != e) {
-				knownArea.getMyZone().setType(e);
-				knownArea.getMyZone().setEnemy(Cave.getZones()[posX][posY].getEnemy());
-			}*/
-			
 			knownArea.getMyZone().getSamus().setScore(knownArea.getMyZone().getSamus().getScore() - d);
 			WindowMaker.setGameInfoText(Integer.toString(knownArea.getMyZone().getSamus().getScore()),
-															Integer.toString(knownArea.getMyZone().getSamus().getActionsTaken()));
+															Integer.toString(knownArea.getMyZone().getSamus().getActionsTaken()),
+															Integer.toString(goldLeftToTake));
 			knownArea.getMyZone().getSamus().setHealth(knownArea.getMyZone().getSamus().getHealth() - d);
-			
-			//knownArea.getMyZone().setVisited();
-			//knownArea.getMyZone().setDamageEnemyDoubt(false);
-			//updateDoubts(posX, posY, 'e');
 			
 			if(knownArea.getMyZone().getSamus().getHealth() <= 0) {
 				
@@ -762,16 +690,14 @@ public class GameLogic extends Thread {
 				
 				knownArea.getMyZone().getSamus().setScore(knownArea.getMyZone().getSamus().getScore() - 1000);
 				WindowMaker.setGameInfoText(Integer.toString(knownArea.getMyZone().getSamus().getScore()),
-																Integer.toString(knownArea.getMyZone().getSamus().getActionsTaken()));
+																Integer.toString(knownArea.getMyZone().getSamus().getActionsTaken()),
+																Integer.toString(goldLeftToTake));
 				return true;
 			}
 			
 			WindowMaker.setLifeBarValue(knownArea.getMyZone().getSamus().getHealth());
 			
-			// TODO UPDATE CHAR INFO INTO PROLOG
-			// INFORM PROLOG ABOUT DANGER, IF IT'S NOT A FACT ALREADY
-			// INFORM PROLOG THERE'S NO DOUBTS ANYMORE, IF THERE WERE ANY ABOUT THIS DANGER
-			sendKnowledgeToProlog(13-posX,posY,"samus([",".");
+			sendKnowledgeToProlog(13-posX,posY,"statusChange(\'H\',",Integer.toString(-d));
 		}
 		else if(Cave.getZones()[posX][posY].getType() == 'T') {
 			
@@ -779,10 +705,6 @@ public class GameLogic extends Thread {
 				sendKnowledgeToProlog(13-posX,posY,"danger([","T");
 				getKnowledgeFromProlog("danger");
 			}
-			sendKnowledgeToProlog(13-knownArea.getMyZone().getSamus().getI(),knownArea.getMyZone().getSamus().getJ(),"samus([",".");
-			
-			//knownArea.getMyZone().setTeleportEnemyDoubt(false);
-			//updateDoubts(posX, posY, 'r');
 			
 			knownArea.getMyZone().getEnemy().generateRandomPosition(knownArea.getMyZone());
 			
@@ -793,9 +715,8 @@ public class GameLogic extends Thread {
 			knownArea.getMyZone().setVisited();
 			knownArea.getExploredMap()[posX][posY].setSamus(null);
 			
-			// TODO UPDATE CHAR INFO INTO PROLOG
-			// INFORM PROLOG ABOUT DANGER, IF IT'S NOT A FACT ALREADY
-			// INFORM PROLOG THERE'S NO DOUBTS ANYMORE, IF THERE WERE ANY ABOUT THIS DANGER
+			sendKnowledgeToProlog(13-knownArea.getMyZone().getSamus().getI(),knownArea.getMyZone().getSamus().getJ(),"statusChange(\'P\',[",".");
+			sendKnowledgeToProlog(0,0,"update_lastVisited",".");
 			
 			// Treat new position
 			if(treatMovement(knownArea.getMyZone().getI(),knownArea.getMyZone().getJ()))
@@ -803,8 +724,6 @@ public class GameLogic extends Thread {
 		}
 		else if(Cave.getZones()[posX][posY].getType() == 'W') {
 			
-			// TODO INFORM PROLOG ABOUT WALL SENSATION, IF IT'S NOT A FACT ALREADY
-			// TELL PROLOG TO GET BACK TO LAST POSITION
 			if(knownArea.getExploredMap()[posX][posY].getType() != 'W') {
 				sendKnowledgeToProlog(13-posX,posY,"bump([",".");
 				getKnowledgeFromProlog("bump");
@@ -812,264 +731,6 @@ public class GameLogic extends Thread {
 		}
 		
 		return false;
-	}
-
-	// This method put doubts into the known area matrix
-	private void showDoubt(char c, int posX, int posY) {
-
-		if((c == 'e' && (knownArea.getExploredMap()[posX + 1][posY].getType() != 'd' && knownArea.getExploredMap()[posX - 1][posY].getType() != 'd'
-						&& knownArea.getExploredMap()[posX][posY + 1].getType() != 'd' && knownArea.getExploredMap()[posX][posY - 1].getType() != 'd'
-						&& knownArea.getExploredMap()[posX + 1][posY].getType() != 'D' && knownArea.getExploredMap()[posX - 1][posY].getType() != 'D'
-						&& knownArea.getExploredMap()[posX][posY + 1].getType() != 'D' && knownArea.getExploredMap()[posX][posY - 1].getType() != 'D'))
-			|| (c == 'p' && (knownArea.getExploredMap()[posX + 1][posY].getType() != 'P' && knownArea.getExploredMap()[posX - 1][posY].getType() != 'P'
-							&& knownArea.getExploredMap()[posX][posY + 1].getType() != 'P' && knownArea.getExploredMap()[posX][posY - 1].getType() != 'P'))
-			|| (c == 'r' && (knownArea.getExploredMap()[posX + 1][posY].getType() != 'T' && knownArea.getExploredMap()[posX - 1][posY].getType() != 'T'
-							&& knownArea.getExploredMap()[posX][posY + 1].getType() != 'T' && knownArea.getExploredMap()[posX][posY - 1].getType() != 'T'))){
-			if (/*posX+1 < 13 && */knownArea.getExploredMap()[posX + 1][posY].isVisited() == false) {
-				if(c == 'e')
-					knownArea.getExploredMap()[posX + 1][posY].setDamageEnemyDoubt(true);
-				else if(c == 'p')
-					knownArea.getExploredMap()[posX + 1][posY].setHoleDoubt(true);
-				else
-					knownArea.getExploredMap()[posX + 1][posY].setTeleportEnemyDoubt(true);
-			}
-			if (/*posX-1 > 0 && */knownArea.getExploredMap()[posX - 1][posY].isVisited() == false) {
-				if(c == 'e')
-					knownArea.getExploredMap()[posX - 1][posY].setDamageEnemyDoubt(true);
-				else if(c == 'p')
-					knownArea.getExploredMap()[posX - 1][posY].setHoleDoubt(true);
-				else
-					knownArea.getExploredMap()[posX - 1][posY].setTeleportEnemyDoubt(true);
-			}
-			if (/*posY-1 > 0 && */knownArea.getExploredMap()[posX][posY - 1].isVisited() == false) {
-				if(c == 'e')
-					knownArea.getExploredMap()[posX][posY - 1].setDamageEnemyDoubt(true);
-				else if(c == 'p')
-					knownArea.getExploredMap()[posX][posY - 1].setHoleDoubt(true);
-				else
-					knownArea.getExploredMap()[posX][posY - 1].setTeleportEnemyDoubt(true);
-			}
-			if (/*posY+1 < 13 && */knownArea.getExploredMap()[posX][posY + 1].isVisited() == false) {
-				if(c == 'e')
-					knownArea.getExploredMap()[posX][posY + 1].setDamageEnemyDoubt(true);
-				else if(c == 'p')
-					knownArea.getExploredMap()[posX][posY + 1].setHoleDoubt(true);
-				else
-					knownArea.getExploredMap()[posX][posY + 1].setTeleportEnemyDoubt(true);
-			}
-		}
-	}
-
-	// This method clears doubts from the known area matrix
-	private void updateDoubts(int i, int j, char type) {
-
-		if(type == 'e') {
-			if (knownArea.getExploredMap()[i + 1][j + 1].isDamageEnemyDoubt())
-				knownArea.getExploredMap()[i + 1][j + 1].setDamageEnemyDoubt(false);
-			if (knownArea.getExploredMap()[i - 1][j + 1].isDamageEnemyDoubt())
-				knownArea.getExploredMap()[i - 1][j + 1].setDamageEnemyDoubt(false);
-			if (knownArea.getExploredMap()[i - 1][j - 1].isDamageEnemyDoubt())
-				knownArea.getExploredMap()[i - 1][j - 1].setDamageEnemyDoubt(false);
-			if (knownArea.getExploredMap()[i + 1][j - 1].isDamageEnemyDoubt())
-				knownArea.getExploredMap()[i + 1][j - 1].setDamageEnemyDoubt(false);
-
-			if ((i - 2 >= 0) && knownArea.getExploredMap()[i - 2][j].isDamageEnemyDoubt())
-				knownArea.getExploredMap()[i - 2][j].setDamageEnemyDoubt(false);
-			if ((i + 2 <= 13) && knownArea.getExploredMap()[i + 2][j].isDamageEnemyDoubt())
-				knownArea.getExploredMap()[i + 2][j].setDamageEnemyDoubt(false);
-			if ((j - 2 >= 0) && knownArea.getExploredMap()[i][j - 2].isDamageEnemyDoubt())
-				knownArea.getExploredMap()[i][j - 2].setDamageEnemyDoubt(false);
-			if ((j + 2 <= 13) && knownArea.getExploredMap()[i][j + 2].isDamageEnemyDoubt())
-				knownArea.getExploredMap()[i][j + 2].setDamageEnemyDoubt(false);
-		}
-		else if(type == 'p') {
-			if (knownArea.getExploredMap()[i + 1][j + 1].isHoleDoubt())
-				knownArea.getExploredMap()[i + 1][j + 1].setHoleDoubt(false);
-			if (knownArea.getExploredMap()[i - 1][j + 1].isHoleDoubt())
-				knownArea.getExploredMap()[i - 1][j + 1].setHoleDoubt(false);
-			if (knownArea.getExploredMap()[i - 1][j - 1].isHoleDoubt())
-				knownArea.getExploredMap()[i - 1][j - 1].setHoleDoubt(false);
-			if (knownArea.getExploredMap()[i + 1][j - 1].isHoleDoubt())
-				knownArea.getExploredMap()[i + 1][j - 1].setHoleDoubt(false);
-
-			if ((i - 2 >= 0) && knownArea.getExploredMap()[i - 2][j].isHoleDoubt())
-				knownArea.getExploredMap()[i - 2][j].setHoleDoubt(false);
-			if ((i + 2 <= 13) && knownArea.getExploredMap()[i + 2][j].isHoleDoubt())
-				knownArea.getExploredMap()[i + 2][j].setHoleDoubt(false);
-			if ((j - 2 >= 0) && knownArea.getExploredMap()[i][j - 2].isHoleDoubt())
-				knownArea.getExploredMap()[i][j - 2].setHoleDoubt(false);
-			if ((j + 2 <= 13) && knownArea.getExploredMap()[i][j + 2].isHoleDoubt())
-				knownArea.getExploredMap()[i][j + 2].setHoleDoubt(false);
-		}
-		else {
-			if (knownArea.getExploredMap()[i + 1][j + 1].isTeleportEnemyDoubt())
-				knownArea.getExploredMap()[i + 1][j + 1].setTeleportEnemyDoubt(false);
-			if (knownArea.getExploredMap()[i - 1][j + 1].isTeleportEnemyDoubt())
-				knownArea.getExploredMap()[i - 1][j + 1].setTeleportEnemyDoubt(false);
-			if (knownArea.getExploredMap()[i - 1][j - 1].isTeleportEnemyDoubt())
-				knownArea.getExploredMap()[i - 1][j - 1].setTeleportEnemyDoubt(false);
-			if (knownArea.getExploredMap()[i + 1][j - 1].isTeleportEnemyDoubt())
-				knownArea.getExploredMap()[i + 1][j - 1].setTeleportEnemyDoubt(false);
-
-			if ((i - 2 >= 0) && knownArea.getExploredMap()[i - 2][j].isTeleportEnemyDoubt())
-				knownArea.getExploredMap()[i - 2][j].setTeleportEnemyDoubt(false);
-			if ((i + 2 <= 13) && knownArea.getExploredMap()[i + 2][j].isTeleportEnemyDoubt())
-				knownArea.getExploredMap()[i + 2][j].setTeleportEnemyDoubt(false);
-			if ((j - 2 >= 0) && knownArea.getExploredMap()[i][j - 2].isTeleportEnemyDoubt())
-				knownArea.getExploredMap()[i][j - 2].setTeleportEnemyDoubt(false);
-			if ((j + 2 <= 13) && knownArea.getExploredMap()[i][j + 2].isTeleportEnemyDoubt())
-				knownArea.getExploredMap()[i][j + 2].setTeleportEnemyDoubt(false);
-		}
-	}
-	
-	// This method checks how many doubts remain in a neighborhood
-	private int countDoubts(int i, int j, char type) {
-		
-		int count = 0;
-		
-		if(type == 'e') {
-			if (knownArea.getExploredMap()[i + 1][j + 1].isDamageEnemyDoubt())
-				count++;
-			if (knownArea.getExploredMap()[i - 1][j + 1].isDamageEnemyDoubt())
-				count++;
-			if (knownArea.getExploredMap()[i - 1][j - 1].isDamageEnemyDoubt())
-				count++;
-			if (knownArea.getExploredMap()[i + 1][j - 1].isDamageEnemyDoubt())
-				count++;
-
-			if ((i - 2 >= 0) && knownArea.getExploredMap()[i - 2][j].isDamageEnemyDoubt())
-				count++;
-			if ((i + 2 <= 13) && knownArea.getExploredMap()[i + 2][j].isDamageEnemyDoubt())
-				count++;
-			if ((j - 2 >= 0) && knownArea.getExploredMap()[i][j - 2].isDamageEnemyDoubt())
-				count++;
-			if ((j + 2 <= 13) && knownArea.getExploredMap()[i][j + 2].isDamageEnemyDoubt())
-				count++;
-		}
-		else if(type == 'p') {
-			if (knownArea.getExploredMap()[i + 1][j + 1].isHoleDoubt())
-				count++;
-			if (knownArea.getExploredMap()[i - 1][j + 1].isHoleDoubt())
-				count++;
-			if (knownArea.getExploredMap()[i - 1][j - 1].isHoleDoubt())
-				count++;
-			if (knownArea.getExploredMap()[i + 1][j - 1].isHoleDoubt())
-				count++;
-
-			if ((i - 2 >= 0) && knownArea.getExploredMap()[i - 2][j].isHoleDoubt())
-				count++;
-			if ((i + 2 <= 13) && knownArea.getExploredMap()[i + 2][j].isHoleDoubt())
-				count++;
-			if ((j - 2 >= 0) && knownArea.getExploredMap()[i][j - 2].isHoleDoubt())
-				count++;
-			if ((j + 2 <= 13) && knownArea.getExploredMap()[i][j + 2].isHoleDoubt())
-				count++;
-		}
-		else {
-			if (knownArea.getExploredMap()[i + 1][j + 1].isTeleportEnemyDoubt())
-				count++;
-			if (knownArea.getExploredMap()[i - 1][j + 1].isTeleportEnemyDoubt())
-				count++;
-			if (knownArea.getExploredMap()[i - 1][j - 1].isTeleportEnemyDoubt())
-				count++;
-			if (knownArea.getExploredMap()[i + 1][j - 1].isTeleportEnemyDoubt())
-				count++;
-
-			if ((i - 2 >= 0) && knownArea.getExploredMap()[i - 2][j].isTeleportEnemyDoubt())
-				count++;
-			if ((i + 2 <= 13) && knownArea.getExploredMap()[i + 2][j].isTeleportEnemyDoubt())
-				count++;
-			if ((j - 2 >= 0) && knownArea.getExploredMap()[i][j - 2].isTeleportEnemyDoubt())
-				count++;
-			if ((j + 2 <= 13) && knownArea.getExploredMap()[i][j + 2].isTeleportEnemyDoubt())
-				count++;
-		}
-		
-		return count;
-	}
-	
-	private int getDoubtXPos(int i, int j, char type) {
-		
-		if(type == 'e') {
-			if(knownArea.getExploredMap()[i+1][j+1].isDamageEnemyDoubt() || knownArea.getExploredMap()[i+1][j-1].isDamageEnemyDoubt())
-				return i+1;
-			if(knownArea.getExploredMap()[i-1][j+1].isDamageEnemyDoubt() || knownArea.getExploredMap()[i-1][j-1].isDamageEnemyDoubt())
-				return i-1;
-			if((i - 2 >= 0) && knownArea.getExploredMap()[i-2][j].isDamageEnemyDoubt())
-				return i-2;
-			if((i + 2 <= 13) && knownArea.getExploredMap()[i+2][j].isDamageEnemyDoubt())
-				return i+2;
-			if(((j - 2 >= 0) && knownArea.getExploredMap()[i][j-2].isDamageEnemyDoubt()) || ((j + 2 <= 13) && knownArea.getExploredMap()[i][j+2].isDamageEnemyDoubt()))
-				return i;
-		}
-		else if(type == 'p') {
-			if(knownArea.getExploredMap()[i+1][j+1].isHoleDoubt() || knownArea.getExploredMap()[i+1][j-1].isHoleDoubt())
-				return i+1;
-			if(knownArea.getExploredMap()[i-1][j+1].isHoleDoubt() || knownArea.getExploredMap()[i-1][j-1].isHoleDoubt())
-				return i-1;
-			if((i - 2 >= 0) && knownArea.getExploredMap()[i-2][j].isHoleDoubt())
-				return i-2;
-			if((i + 2 <= 13) && knownArea.getExploredMap()[i+2][j].isHoleDoubt())
-				return i+2;
-			if(((j - 2 >= 0) && knownArea.getExploredMap()[i][j-2].isHoleDoubt()) || ((j + 2 <= 13) && knownArea.getExploredMap()[i][j+2].isHoleDoubt()))
-				return i;
-		}
-		else {
-			if(knownArea.getExploredMap()[i+1][j+1].isTeleportEnemyDoubt() || knownArea.getExploredMap()[i+1][j-1].isTeleportEnemyDoubt())
-				return i+1;
-			if(knownArea.getExploredMap()[i-1][j+1].isTeleportEnemyDoubt() || knownArea.getExploredMap()[i-1][j-1].isTeleportEnemyDoubt())
-				return i-1;
-			if((i - 2 >= 0) && knownArea.getExploredMap()[i-2][j].isTeleportEnemyDoubt())
-				return i-2;
-			if((i + 2 <= 13) && knownArea.getExploredMap()[i+2][j].isTeleportEnemyDoubt())
-				return i+2;
-			if(((j - 2 >= 0) && knownArea.getExploredMap()[i][j-2].isTeleportEnemyDoubt()) || ((j + 2 <= 13) && knownArea.getExploredMap()[i][j+2].isTeleportEnemyDoubt()))
-				return i;
-		}
-		// If this is returned, something's wrong
-		return -1;
-	}
-	
-	private int getDoubtYPos(int i, int j, char type) {
-
-		if(type == 'e') {
-			if(knownArea.getExploredMap()[i+1][j+1].isDamageEnemyDoubt() || knownArea.getExploredMap()[i-1][j+1].isDamageEnemyDoubt())
-				return j+1;
-			if(knownArea.getExploredMap()[i+1][j-1].isDamageEnemyDoubt() || knownArea.getExploredMap()[i-1][j-1].isDamageEnemyDoubt())
-				return j-1;
-			if(((i - 2 >= 0) && knownArea.getExploredMap()[i-2][j].isDamageEnemyDoubt()) || ((i + 2 <= 13) && knownArea.getExploredMap()[i+2][j].isDamageEnemyDoubt()))
-				return j;
-			if((j - 2 >= 0) && knownArea.getExploredMap()[i][j-2].isDamageEnemyDoubt())
-				return j-2;
-			if((j + 2 <= 13) && knownArea.getExploredMap()[i][j+2].isDamageEnemyDoubt())
-				return j+2;
-		}
-		else if(type == 'p') {
-			if(knownArea.getExploredMap()[i+1][j+1].isHoleDoubt() || knownArea.getExploredMap()[i-1][j+1].isHoleDoubt())
-				return j+1;
-			if(knownArea.getExploredMap()[i+1][j-1].isHoleDoubt() || knownArea.getExploredMap()[i-1][j-1].isHoleDoubt())
-				return j-1;
-			if(((i - 2 >= 0) && knownArea.getExploredMap()[i-2][j].isHoleDoubt()) || ((i + 2 <= 13) && knownArea.getExploredMap()[i+2][j].isHoleDoubt()))
-				return j;
-			if((j - 2 >= 0) && knownArea.getExploredMap()[i][j-2].isHoleDoubt())
-				return j-2;
-			if((j + 2 <= 13) && knownArea.getExploredMap()[i][j+2].isHoleDoubt())
-				return j+2;
-		}
-		else {
-			if(knownArea.getExploredMap()[i+1][j+1].isTeleportEnemyDoubt() || knownArea.getExploredMap()[i-1][j+1].isTeleportEnemyDoubt())
-				return j+1;
-			if(knownArea.getExploredMap()[i+1][j-1].isTeleportEnemyDoubt() || knownArea.getExploredMap()[i-1][j-1].isTeleportEnemyDoubt())
-				return j-1;
-			if(((i - 2 >= 0) && knownArea.getExploredMap()[i-2][j].isTeleportEnemyDoubt()) || ((i + 2 <= 13) && knownArea.getExploredMap()[i+2][j].isTeleportEnemyDoubt()))
-				return j;
-			if((j - 2 >= 0) && knownArea.getExploredMap()[i][j-2].isTeleportEnemyDoubt())
-				return j-2;
-			if((j + 2 <= 13) && knownArea.getExploredMap()[i][j+2].isTeleportEnemyDoubt())
-				return j+2;
-		}
-		// If this is returned, something's wrong
-		return -1;
 	}
 	
 	// This method says if the area shot has an enemy

@@ -173,7 +173,7 @@ public class WindowMaker extends JFrame {
 		gameInfoText.setLineWrap(true);
 		gameInfoText.setWrapStyleWord(true);
 		gameInfoText.setEditable(false);
-		setGameInfoText(Integer.toString(0), Integer.toString(0));
+		setGameInfoText(Integer.toString(0), Integer.toString(0), Integer.toString(3));
 		infoPanel.add(gameInfoText);
 		
 		// Forth, the remaining ammo
@@ -198,8 +198,8 @@ public class WindowMaker extends JFrame {
 		lifeBar.setString("Health = " + newValue);
 	}
 	
-	public static void setGameInfoText(String score, String action) {
-		gameInfoText.setText("GENERAL INFO:\n-SCORE = " + score + "\n-NUMBER OF ACTIONS TAKEN = " + action);
+	public static void setGameInfoText(String score, String action, String goldLeftToTake) {
+		gameInfoText.setText("-GOLD LEFT TO TAKE = " + goldLeftToTake + "\n-SCORE = " + score + "\n-NUMBER OF ACTIONS TAKEN = " + action);
 	}
 	
 	public static void setAmmoPanelValue(int ammo) {

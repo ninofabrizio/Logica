@@ -166,9 +166,18 @@ public class Cave extends JPanel {
 		for(int k = 1; k <= num; k++) {
 			
 			int i = 12, j = 1;
-			while((i == 12 && j == 1) || caveMap[i][j].getType() != '.' || sameNeighbors(type, i, j)) {
-				i = ThreadLocalRandom.current().nextInt(1, 12 + 1);
-				j = ThreadLocalRandom.current().nextInt(1, 12 + 1);
+			
+			if(type == 'P' || type == 'd' || type == 'D' ||type == 'T' ) {
+				while((i == 12 && j == 1) || (i == 11 && j == 1) || (i == 12 && j == 2) || (i == 11 && j == 2) || caveMap[i][j].getType() != '.' || sameNeighbors(type, i, j)){
+					i = ThreadLocalRandom.current().nextInt(1, 12 + 1);
+					j = ThreadLocalRandom.current().nextInt(1, 12 + 1);
+				}
+			}
+			else {
+				while((i == 12 && j == 1) || caveMap[i][j].getType() != '.' || sameNeighbors(type, i, j)) {
+					i = ThreadLocalRandom.current().nextInt(1, 12 + 1);
+					j = ThreadLocalRandom.current().nextInt(1, 12 + 1);				
+				}
 			}
 			
 			caveMap[i][j].setType(type);
