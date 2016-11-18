@@ -71,44 +71,40 @@ public class GameLogic extends Thread {
 				// Showing the requisition
 				System.out.println(q2.toString());
 
-				// For every solution returned by prolog
-				for (int i = 0; i < solution.length; i++) {
+				System.out.println("X" + " = " + solution[0].get("X").toString() + "\n");
+				// System.out.println("X length = " + solution[i].get("X").listLength());
+				// System.out.println(solution[i].get("X").arg(2).arg(2).arg(2).toString());
 
-					System.out.println("X" + " = " + solution[i].get("X").toString() + "\n");
-					// System.out.println("X length = " + solution[i].get("X").listLength());
-					// System.out.println(solution[i].get("X").arg(2).arg(2).arg(2).toString());
+				// Extracting term, because, head is 1 value, body is another term
+				Term term = solution[0].get("X");
+				for (int j = 0; j < solution[0].get("X").listLength(); j++, term = term.arg(2)) {
 
-					// Extracting term, because, head is 1 value, body is another term
-					Term term = solution[i].get("X");
-					for (int j = 0; j < solution[i].get("X").listLength(); j++, term = term.arg(2)) {
-
-						// Here enters the actions (letter)
-						if (j == 0 && term.arg(1).toString().contains("'")) {
+					// Here enters the actions (letter)
+					if (j == 0 && term.arg(1).toString().contains("'")) {
 							
-							// System.out.println(term.arg(1).toString().charAt(1));
-							action = term.arg(1).toString().charAt(1);
-						}
-						// By being second iteration, I know that first argument is a list of [i,j] position
-						else if (j == 1 /* && action == 'M' */) {
+						// System.out.println(term.arg(1).toString().charAt(1));
+						action = term.arg(1).toString().charAt(1);
+					}
+					// By being second iteration, I know that first argument is a list of [i,j] position
+					else if (j == 1 /* && action == 'M' */) {
 							
-							// System.out.println(term.arg(1).arg(1).toString());
-							posX = Integer.parseInt(term.arg(1).arg(1).toString());
+						// System.out.println(term.arg(1).arg(1).toString());
+						posX = Integer.parseInt(term.arg(1).arg(1).toString());
 							
-							// System.out.println(term.arg(1).arg(2).toString());
-							posY = Integer.parseInt(term.arg(1).arg(2).toString());
-						}
-						// And here the rest (numbers)
-						else {
-							// System.out.println(term.arg(1).toString());
-							if (j == 2)
-								direction = Integer.parseInt(term.arg(1).toString());
-							else if (j == 3)
-								health = Integer.parseInt(term.arg(1).toString());
-							else if (j == 4)
-								ammo = Integer.parseInt(term.arg(1).toString());
-							else if (j == 5)
-								score = Integer.parseInt(term.arg(1).toString());
-						}
+						// System.out.println(term.arg(1).arg(2).toString());
+						posY = Integer.parseInt(term.arg(1).arg(2).toString());
+					}
+					// And here the rest (numbers)
+					else {
+						// System.out.println(term.arg(1).toString());
+						if (j == 2)
+							direction = Integer.parseInt(term.arg(1).toString());
+						else if (j == 3)
+							health = Integer.parseInt(term.arg(1).toString());
+						else if (j == 4)
+							ammo = Integer.parseInt(term.arg(1).toString());
+						else if (j == 5)
+							score = Integer.parseInt(term.arg(1).toString());
 					}
 				}
 
@@ -384,12 +380,13 @@ public class GameLogic extends Thread {
 					else if(type == 'd' && string.contains("danger")) {
 						knownArea.getExploredMap()[posX][posY].setType('d');
 						knownArea.getExploredMap()[posX][posY].setDamageEnemyDoubt(false);
-						knownArea.getExploredMap()[posX][posY].setEnemy(Cave.getZones()[posX][posY].getEnemy());
+						//if(Cave.getZones()[posX][posY].getEnemy() != null)
+							knownArea.getExploredMap()[posX][posY].setEnemy(Cave.getZones()[posX][posY].getEnemy());
 					}
 					else if(type == 'D' && string.contains("danger")) {
 						knownArea.getExploredMap()[posX][posY].setType('D');
 						knownArea.getExploredMap()[posX][posY].setDamageEnemyDoubt(false);
-						if(Cave.getZones()[posX][posY].getEnemy() != null)
+						//if(Cave.getZones()[posX][posY].getEnemy() != null)
 							knownArea.getExploredMap()[posX][posY].setEnemy(Cave.getZones()[posX][posY].getEnemy());
 					}
 					else if((type == 'd' || type == 'D') && string.contains("doubt"))
@@ -397,7 +394,7 @@ public class GameLogic extends Thread {
 					else if(type == 'T' && string.contains("danger")) {
 						knownArea.getExploredMap()[posX][posY].setType('T');
 						knownArea.getExploredMap()[posX][posY].setTeleportEnemyDoubt(false);
-						if(Cave.getZones()[posX][posY].getEnemy() != null)
+						//if(Cave.getZones()[posX][posY].getEnemy() != null)
 							knownArea.getExploredMap()[posX][posY].setEnemy(Cave.getZones()[posX][posY].getEnemy());
 					}
 					else if(type == 'T' && string.contains("doubt"))
@@ -444,6 +441,26 @@ public class GameLogic extends Thread {
 		Query q2 = null;
 		
 		if(name.contains("danger")) {
+			
+			if(type.contains("\'d\'")) {
+				
+				String command = name.concat("X | Y], \'D\')");
+				
+				// This is in case she marked 'D' for an enemy she knows it's there but never visited
+				// ('D' is the default in prolog in that case)
+				if(!verifyFact(command, i, j)) {
+					
+					command = new String("retract(").concat(name);
+					command = command.concat(Integer.toString(i));
+					command = command.concat("|");
+					command = command.concat(Integer.toString(j));
+					command = command.concat("],\'D\'))");
+
+					q2 = new Query(command);
+					q2.hasSolution();
+					System.out.println(q2.toString() + "\n");
+				}
+			}
 			
 			String command = name.concat("X | Y], \'");
 			command = command.concat(type);
@@ -736,8 +753,8 @@ public class GameLogic extends Thread {
 	// This method says if the area shot has an enemy
 	private boolean isValidShot(int posX, int posY) {
 		
-		if((knownArea.getMyZone().getSamus().getDirection() == 1 && Cave.getZones()[posX+1][posY].getEnemy() != null)
-			|| (knownArea.getMyZone().getSamus().getDirection() == 2 && Cave.getZones()[posX-1][posY].getEnemy() != null)
+		if((knownArea.getMyZone().getSamus().getDirection() == 1 && Cave.getZones()[posX-1][posY].getEnemy() != null)
+			|| (knownArea.getMyZone().getSamus().getDirection() == 2 && Cave.getZones()[posX+1][posY].getEnemy() != null)
 			|| (knownArea.getMyZone().getSamus().getDirection() == 3 && Cave.getZones()[posX][posY-1].getEnemy() != null)
 			|| (knownArea.getMyZone().getSamus().getDirection() == 4 && Cave.getZones()[posX][posY+1].getEnemy() != null))
 			return true;
