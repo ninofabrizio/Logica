@@ -203,6 +203,42 @@ public class Cave extends JPanel {
 				return true;
 			if((j + 2 <= 13) && caveMap[i][j+2].getType() == type)
 				return true;
+			
+			// Checking these because both types below share the same feeling
+			if(type == 'd') {
+				if(caveMap[i+1][j].getType() == 'D' || caveMap[i-1][j].getType() == 'D'
+						|| caveMap[i][j+1].getType() == 'D' || caveMap[i][j-1].getType() == 'D'
+						|| caveMap[i+1][j+1].getType() == 'D' || caveMap[i+1][j-1].getType() == 'D'
+						|| caveMap[i-1][j-1].getType() == 'D' || caveMap[i-1][j+1].getType() == 'D')
+					return true;
+				
+				// Checking farthest neighbors
+				if((i - 2 >= 0) && caveMap[i-2][j].getType() == 'D')
+					return true;
+				if((i + 2 <= 13) && caveMap[i+2][j].getType() == 'D')
+					return true;
+				if((j - 2 >= 0) && caveMap[i][j-2].getType() == 'D')
+					return true;
+				if((j + 2 <= 13) && caveMap[i][j+2].getType() == 'D')
+					return true;
+			}
+			else if(type == 'D') {
+				if(caveMap[i+1][j].getType() == 'd' || caveMap[i-1][j].getType() == 'd'
+						|| caveMap[i][j+1].getType() == 'd' || caveMap[i][j-1].getType() == 'd'
+						|| caveMap[i+1][j+1].getType() == 'd' || caveMap[i+1][j-1].getType() == 'd'
+						|| caveMap[i-1][j-1].getType() == 'd' || caveMap[i-1][j+1].getType() == 'd')
+					return true;
+				
+				// Checking farthest neighbors
+				if((i - 2 >= 0) && caveMap[i-2][j].getType() == 'd')
+					return true;
+				if((i + 2 <= 13) && caveMap[i+2][j].getType() == 'd')
+					return true;
+				if((j - 2 >= 0) && caveMap[i][j-2].getType() == 'd')
+					return true;
+				if((j + 2 <= 13) && caveMap[i][j+2].getType() == 'd')
+					return true;
+			}
 		//}
 			
 		// To avoid mixed "feelings" from neighbors

@@ -21,10 +21,12 @@ public class AStar {
 		start.setParent(null);
 	}
 	
+	// Our Manhattan heuristic
 	private int estimateDistance(Zone z1, Zone z2) {
 	    return Math.abs(z1.getI() - z2.getI()) + Math.abs(z1.getJ() - z2.getJ());
 	}
 	
+	// Calculates the cost of the zone, according to turnRight and Move actions needed
 	private int getCost(Zone neighbor, Zone current) {
 		
 		int cost = 1;
@@ -96,24 +98,25 @@ public class AStar {
 		return cost;
 	}
     
+	// Add the neighbors that are permitted
     public ArrayList<Zone>neighbors( Zone x ) {
     	
     	ArrayList<Zone>neighbors = new ArrayList<Zone>();
     
-    	if (x.getJ() + 1 < 13 && exploredMap[x.getI()][x.getJ() + 1].isVisited()
-    			&& exploredMap[x.getI()][x.getJ() + 1].getEnemy() == null)
+    	if (goal.equals(exploredMap[x.getI()][x.getJ() + 1]) || (x.getJ() + 1 < 13 && exploredMap[x.getI()][x.getJ() + 1].isVisited()
+    			&& exploredMap[x.getI()][x.getJ() + 1].getEnemy() == null))
     		neighbors.add(exploredMap[x.getI()][x.getJ() + 1]);
     	
-    	if (x.getJ() - 1 > 0 && exploredMap[x.getI()][x.getJ() - 1].isVisited()
-    			&& exploredMap[x.getI()][x.getJ() - 1].getEnemy() == null)
+    	if (goal.equals(exploredMap[x.getI()][x.getJ() - 1]) || (x.getJ() - 1 > 0 && exploredMap[x.getI()][x.getJ() - 1].isVisited()
+    			&& exploredMap[x.getI()][x.getJ() - 1].getEnemy() == null))
     		neighbors.add(exploredMap[x.getI()][x.getJ() - 1]);
     	
-    	if (x.getI() + 1 < 13 && exploredMap[x.getI() + 1][x.getJ()].isVisited()
-    			&& exploredMap[x.getI() + 1][x.getJ()].getEnemy() == null)
+    	if (goal.equals(exploredMap[x.getI() + 1][x.getJ()]) || (x.getI() + 1 < 13 && exploredMap[x.getI() + 1][x.getJ()].isVisited()
+    			&& exploredMap[x.getI() + 1][x.getJ()].getEnemy() == null))
     		neighbors.add(exploredMap[x.getI()  + 1][x.getJ()]);
     	
-    	if (x.getI() - 1 > 0 && exploredMap[x.getI() - 1][x.getJ()].isVisited()
-    			&& exploredMap[x.getI() - 1][x.getJ()].getEnemy() == null)
+    	if (goal.equals(exploredMap[x.getI() - 1][x.getJ()]) || (x.getI() - 1 > 0 && exploredMap[x.getI() - 1][x.getJ()].isVisited()
+    			&& exploredMap[x.getI() - 1][x.getJ()].getEnemy() == null))
     		neighbors.add(exploredMap[x.getI() - 1][x.getJ()]);
     	  	
     	return neighbors;
@@ -174,7 +177,8 @@ public class AStar {
     	        }    
     	    }
     	}
-    	    
+    	
+    	// Setting the list for the actual path (head is goal, tail is start)
     	List<Zone> nodes = new ArrayList<Zone>();
     	Zone current = goal;
     	    

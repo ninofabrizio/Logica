@@ -50,7 +50,7 @@ public class GameLogic extends Thread {
 			getKnowledgeFromProlog("doubt");
 			knownArea.repaint();
 		}
-
+		
 		while(true) {
 
 			Query q2;
@@ -125,6 +125,10 @@ public class GameLogic extends Thread {
 					knownArea.getMyZone().setSamus(null);
 					knownArea.setMyZone(knownArea.getExploredMap()[posX][posY]);
 					knownArea.getMyZone().setVisited();
+					
+					// Being certain that AStar is not valid if she stepped on a teleport enemy
+					if(Cave.getZones()[posX][posY].getType() == 'T')
+						aStarPath = null;
 				}
 				
 				knownArea.getMyZone().getSamus().setHealth(health);
@@ -197,69 +201,54 @@ public class GameLogic extends Thread {
 				// Dealing with AStar situation
 				if(aStarPath == null) {
 					if(goldLeftToTake == 0) {
+						
 						AStar star = new AStar(knownArea.getExploredMap(), knownArea.getMyZone(), knownArea.getExploredMap()[12][1]);
 						aStarPath = star.aStar();
-						
-						if(aStarPath != null && aStarPath.size() > 1) {
-							aStarPath.remove(aStarPath.size()-1); // Getting rid of position she's in
-							Zone nextDestination = aStarPath.remove(aStarPath.size()-1);
-							sendKnowledgeToProlog(13-nextDestination.getI(),nextDestination.getJ(),"nextDestination([",".");
-						}
-						else
-							aStarPath = null;
 					}
 					else if(knownArea.getMyZone().getSamus().getHealth() <= 50) {
 						
-						List<Zone> closestPath = null;
+						// Searching in known power-up zones
+						aStarPath = getClosestPath('U');
+					}
+					else if(action == 'A') {
 						
-						// Looking for known power-ups
-						for(int i = 1, bestPathCost = 0; i < 13; i++) {
-							for(int j = 1; j < 13; j++) {
-								if(knownArea.getExploredMap()[i][j].getType() == 'U') {
-									
-									AStar star = new AStar(knownArea.getExploredMap(), knownArea.getMyZone(), knownArea.getExploredMap()[i][j]);
-									
-									if(closestPath == null) {
-										closestPath = star.aStar();
-										
-										if(closestPath == null)
-											continue;
-										
-										bestPathCost = closestPath.get(0).getF();
-									}
-									else {
-										List<Zone> candidatePath = star.aStar();
-										
-										if(candidatePath == null)
-											continue;
-										
-										if(candidatePath.get(0).getF() < bestPathCost) {
-											closestPath = candidatePath;
-											bestPathCost = candidatePath.get(0).getF();
-										}
-									}
-									
-									for(int k = 1; k < 13; k++) {
-										for(int l = 1; l < 13; l++) {
-											knownArea.getExploredMap()[k][l].setF(-1);
-											knownArea.getExploredMap()[k][l].setG(-1);
-											knownArea.getExploredMap()[k][l].setParent(null);
-										}
-									}
-								}
+						for(int i = 1; aStarPath == null && i <= 8; i++) {
+							
+							if(i == 1) //Look for toVisit zone
+								aStarPath = getClosestPath('t');
+							else if(i == 2) //Look for damage enemy doubt zone
+								aStarPath = getClosestPath('e');
+							else if(i == 3) //Look for teleport enemy doubt zone
+								aStarPath = getClosestPath('r');
+							else if(i == 4) //Look for 20 damage enemy zone
+								aStarPath = getClosestPath('d');
+							else if(i == 5) //Look for 50 damage enemy zone
+								aStarPath = getClosestPath('D');
+							else if(i == 6) //Look for teleport enemy zone
+								aStarPath = getClosestPath('T');
+							else if(i == 7) //Look for hole doubt zone
+								aStarPath = getClosestPath('p');
+							else { //F*ck it, go home
+								AStar star = new AStar(knownArea.getExploredMap(), knownArea.getMyZone(), knownArea.getExploredMap()[12][1]);
+								aStarPath = star.aStar();
+								sendKnowledgeToProlog(0,0,"runToTheHills",".");
 							}
 						}
-						
-						aStarPath = closestPath;
-						
-						if(aStarPath != null && aStarPath.size() > 1) {
-							aStarPath.remove(aStarPath.size()-1); // Getting rid of position she's in
-							Zone nextDestination = aStarPath.remove(aStarPath.size()-1);
-							sendKnowledgeToProlog(13-nextDestination.getI(),nextDestination.getJ(),"nextDestination([",".");
-						}
-						else
-							aStarPath = null;
 					}
+					
+					if(aStarPath != null && ((action != 'A' && aStarPath.size() > 1)
+						|| (action == 'A' && aStarPath.size() > 2))) {
+						
+						aStarPath.remove(aStarPath.size()-1); // Getting rid of position she's in
+						
+						if(action == 'A')
+							aStarPath.remove(0); // Also getting rid of the goal in this case
+						
+						Zone nextDestination = aStarPath.remove(aStarPath.size()-1);
+						sendKnowledgeToProlog(13-nextDestination.getI(),nextDestination.getJ(),"nextDestination([",".");
+					}
+					else
+						aStarPath = null;
 				}
 				else if(!aStarPath.isEmpty()) {
 					if(action == 'M') {
@@ -293,6 +282,55 @@ public class GameLogic extends Thread {
 		}
 	}
 
+	// Returns the path to the closest zone of type asked
+	private List<Zone> getClosestPath(char type) {
+		
+		List<Zone> closestPath = null;
+		
+		for(int i = 1, bestPathCost = 0; i < 13; i++) {
+			for(int j = 1; j < 13; j++) {
+				if(knownArea.getExploredMap()[i][j].getType() == type
+					|| (type == 'e' && knownArea.getExploredMap()[i][j].isDamageEnemyDoubt())
+					|| (type == 'r' && knownArea.getExploredMap()[i][j].isTeleportEnemyDoubt())
+					|| (type == 'p' && knownArea.getExploredMap()[i][j].isHoleDoubt())) {
+					
+					AStar star = new AStar(knownArea.getExploredMap(), knownArea.getMyZone(), knownArea.getExploredMap()[i][j]);
+					
+					if(closestPath == null) {
+						closestPath = star.aStar();
+						
+						if(closestPath == null)
+							continue;
+						
+						bestPathCost = closestPath.get(0).getF();
+					}
+					else {
+						List<Zone> candidatePath = star.aStar();
+						
+						if(candidatePath == null)
+							continue;
+						
+						if(candidatePath.get(0).getF() < bestPathCost) {
+							closestPath = candidatePath;
+							bestPathCost = candidatePath.get(0).getF();
+						}
+					}
+					
+					for(int k = 1; k < 13; k++) {
+						for(int l = 1; l < 13; l++) {
+							knownArea.getExploredMap()[k][l].setF(-1);
+							knownArea.getExploredMap()[k][l].setG(-1);
+							knownArea.getExploredMap()[k][l].setParent(null);
+						}
+					}
+				}
+			}
+		}
+		
+		return closestPath;
+	}
+
+	// Gets known facts from prolog and saves their info
 	private void getKnowledgeFromProlog(String string) {
 		
 		int posX, posY;
@@ -300,6 +338,7 @@ public class GameLogic extends Thread {
 		
 		String command = null;
 		
+		// Undoing known things, just to be sure Java is strictly showing what Prolog knows
 		for(int i = 0; i < 14; i++) {
 			for(int j = 0; j < 14; j++) {
 				if(string.equals("danger")){
@@ -435,7 +474,7 @@ public class GameLogic extends Thread {
 		}
 	}
 
-	// Here we create facts in our prolog file
+	// Here we create (or destroy) facts in our prolog file
 	private void sendKnowledgeToProlog(int i, int j, String name, String type) {
 		
 		Query q2 = null;
@@ -538,12 +577,46 @@ public class GameLogic extends Thread {
 		else if(name.contains("statusChange")) {
 			
 			String command = null;
+			String visitCommand = null;
 			
 			if(name.contains("\'P\'")) {
 				command = name.concat(Integer.toString(i));
 				command = command.concat("|");
 				command = command.concat(Integer.toString(j));
 				command = command.concat("])");
+				
+				
+				// Including zone to visited, if it is not there
+				if(verifyFact("visited([X | Y])", i, j)) {
+					
+					visitCommand = new String("visited([").concat(Integer.toString(i));
+					visitCommand = visitCommand.concat("|");
+					visitCommand = visitCommand.concat(Integer.toString(j));
+					visitCommand = visitCommand.concat("])");
+					
+					visitCommand = new String("assert(").concat(visitCommand);
+					visitCommand = visitCommand.concat(")");
+					
+					q2 = new Query(visitCommand);
+					q2.hasSolution();
+					System.out.println(q2.toString() + "\n");
+				}
+				
+				// Excluding zone from toVisit, if it is there
+				if(!verifyFact("toVisit([X | Y])", i, j)) {
+					
+					visitCommand = new String("toVisit([").concat(Integer.toString(i));
+					visitCommand = visitCommand.concat("|");
+					visitCommand = visitCommand.concat(Integer.toString(j));
+					visitCommand = visitCommand.concat("])");
+					
+					visitCommand = new String("retract(").concat(visitCommand);
+					visitCommand = visitCommand.concat(")");
+					
+					q2 = new Query(visitCommand);
+					q2.hasSolution();
+					System.out.println(q2.toString() + "\n");
+				}
 			}
 			else if(name.contains("\'H\'")) {
 				command = name.concat(type);
@@ -572,6 +645,12 @@ public class GameLogic extends Thread {
 			q2.hasSolution();
 			System.out.println(q2.toString() + "\n");
 		}
+		else if(name.contains("runToTheHills")) {
+			
+			q2 = new Query("assert(runToTheHills(yes))");
+			q2.hasSolution();
+			System.out.println(q2.toString() + "\n");
+		}
 		else {
 			
 			String command = name.concat("X | Y])");
@@ -587,10 +666,19 @@ public class GameLogic extends Thread {
 				q2 = new Query(command);
 				q2.hasSolution();
 				System.out.println(q2.toString() + "\n");
+				
+				/*q2 = new Query("feelings");
+				q2.hasSolution();
+				System.out.println(q2.toString() + "\n");
+				
+				q2 = new Query("mark_doubts");
+				q2.hasSolution();
+				System.out.println(q2.toString() + "\n");*/
 			}
 		}
 	}
 
+	// Returns true if a fact is not in Prolog file, false if it is
 	private boolean verifyFact(String command, int posX, int posY) {
 		
 		Query q2 = new Query(command);
@@ -762,6 +850,7 @@ public class GameLogic extends Thread {
 		return false;
 	}
 	
+	// Return enemy's x position, based on Samus' direction
 	private int getEnemyXPos(int posX, int posY) {
 		
 		if(knownArea.getMyZone().getSamus().getDirection() == 3 || knownArea.getMyZone().getSamus().getDirection() == 4)
@@ -772,6 +861,7 @@ public class GameLogic extends Thread {
 			return posX+1;
 	}
 	
+	// Return enemy's y position, based on Samus' direction
 	private int getEnemyYPos(int posX, int posY) {
 		
 		if(knownArea.getMyZone().getSamus().getDirection() == 1 || knownArea.getMyZone().getSamus().getDirection() == 2)
@@ -782,7 +872,7 @@ public class GameLogic extends Thread {
 			return posY+1;
 	}
 	
-	// Returns true if enemy dies
+	// Updates enemy's health and returns true if enemy dies, false if it still lives
 	private boolean damageEnemy(int posX, int posY, int damage) {
 			
 		Cave.getZones()[posX][posY].getEnemy().setHealth(Cave.getZones()[posX][posY].getEnemy().getHealth()-damage);
@@ -792,6 +882,7 @@ public class GameLogic extends Thread {
 		return false;
 	}
 	
+	// Returns true if zone is supposed to have a feeling, false if not
 	private boolean isSensationZone(char c, int posX, int posY) {
 		
 		if(c == 'e') {
