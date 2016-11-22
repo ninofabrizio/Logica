@@ -199,7 +199,7 @@ public class WindowMaker extends JFrame {
 	}
 	
 	public static void setGameInfoText(String score, String action, String goldLeftToTake) {
-		gameInfoText.setText("-GOLD LEFT TO TAKE = " + goldLeftToTake + "\n-SCORE = " + score + "\n-NUMBER OF ACTIONS TAKEN = " + action);
+		gameInfoText.setText("GOLD LEFT TO TAKE = " + goldLeftToTake + "\nSCORE = " + score + "\nNUMBER OF ACTIONS TAKEN = " + action);
 	}
 	
 	public static void setAmmoPanelValue(int ammo) {

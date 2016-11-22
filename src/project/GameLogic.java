@@ -342,7 +342,8 @@ public class GameLogic extends Thread {
 		for(int i = 0; i < 14; i++) {
 			for(int j = 0; j < 14; j++) {
 				if(string.equals("danger")){
-					if(knownArea.getExploredMap()[i][j].getEnemy() != null) {
+					if(knownArea.getExploredMap()[i][j].getEnemy() != null
+						|| knownArea.getExploredMap()[i][j].getType() == 'P') {
 						knownArea.getExploredMap()[i][j].setEnemy(null);
 					
 						if(knownArea.getExploredMap()[i][j].isVisited())

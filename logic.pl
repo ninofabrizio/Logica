@@ -9,7 +9,7 @@
 :- dynamic visited/1.			% Zones visited					: Position
 :- dynamic danger/2.			% Zones WITH danger				: Position && 'P' || 'd' || 'D' || 'T'
 
-:- dynamic doubt/2.				% Zones WITH POTENTIAL danger	: Position && 'P' || 'd' || 'D' || 'T'
+:- dynamic doubt/2.				% Zones WITH POTENTIAL danger	: Position && 'P' || 'D' || 'T'
 
 :- dynamic power_up/1.			% Zones WITH power_up(health)	: Position
 :- dynamic sound/1.				% Zones WITH sound(damage)		: Position
@@ -68,8 +68,11 @@ checkUndo :- undo_doubt, factor_bump, factor_scream, factor_shot.
 feelings :- samus(P,_,_,_,_), breeze(P), checkNeighborsDanger('P'), feel_breeze.
 feelings :- samus(P,_,_,_,_), flash(P), checkNeighborsDanger('T'), feel_flash.
 feelings :- samus(P,_,_,_,_), sound(P), checkNeighborsDanger('D'), checkNeighborsDanger('d'), feel_sound.
+feelings :- samus(P,_,_,_,_), \+breeze(P), erraseDoubtsDangers('P').
+feelings :- samus(P,_,_,_,_), \+flash(P), erraseDoubtsDangers('T').
+feelings :- samus(P,_,_,_,_), \+sound(P), erraseDoubtsDangers('D').
 feelings :- feel_free.
-feelings :- mark_doubts; !.
+feelings :- markAllDoubts; !.
 
 
 
@@ -77,6 +80,15 @@ feelings :- mark_doubts; !.
 checkNeighborsDanger( D ) :-	agent_neighbors, neighbor01(X1, Y1), neighbor02(X2, Y2), neighbor03(X3, Y3), neighbor04(X4, Y4),
 								\+danger([X1 | Y1], D), \+danger([X2 | Y2], D), \+danger([X3 | Y3], D), \+danger([X4 | Y4], D),
 								\+doubt([X1 | Y1], D), \+doubt([X2 | Y2], D), \+doubt([X3 | Y3], D), \+doubt([X4 | Y4], D).
+
+
+
+%% Errase dangers and doubts that are next to a zone without noted feeling
+erraseDoubtsDangers( D ) :-	agent_neighbors, neighbor01(X1, Y1), neighbor02(X2, Y2), neighbor03(X3, Y3), neighbor04(X4, Y4),
+							(( doubt([X1 | Y1], D), retract(doubt([X1 | Y1], D)) ); ( danger([X1 | Y1], D), retract(danger([X1 | Y1], D)) );
+							( doubt([X2 | Y2], D), retract(doubt([X2 | Y2], D)) ); ( danger([X2 | Y2], D), retract(danger([X2 | Y2], D)) );
+							( doubt([X3 | Y3], D), retract(doubt([X3 | Y3], D)) ); ( danger([X3 | Y3], D), retract(danger([X3 | Y3], D)) );
+							( doubt([X4 | Y4], D), retract(doubt([X4 | Y4], D)) ); ( danger([X4 | Y4], D), retract(danger([X4 | Y4], D)) )); !.
 
 
 
@@ -162,7 +174,7 @@ undo_doubt :-	agent_neighbors, samus(P,_,_,_,_),
 
 %% AStar actions rule, this is the one Java calls to perform an action if AStar was activated
 %  RETURNED ACTIONS: 'D' == Direction changed || 'M' == Moved ahead
-aStarAction( A ) :- moveToDestination(A1), passInformation(A, A1), !.
+aStarAction( A ) :- feelings, moveToDestination(A1), passInformation(A, A1), !.
 
 
 
@@ -337,39 +349,18 @@ checkDangerType( D, D1 ) :- (D == 'd', D1 = 'D') ; D1 = D.
 
 
 
+markAllDoubts :- 	agent_neighbors, neighbor01(X1, Y1), neighbor02(X2, Y2), neighbor03(X3, Y3), neighbor04(X4, Y4),
+					mark_doubt([X1 | Y1], [X2 | Y2], [X3 | Y3], [X4 | Y4]), mark_doubt([X2 | Y2], [X1 | Y1], [X3 | Y3], [X4 | Y4]),
+					mark_doubt([X3 | Y3], [X2 | Y2], [X1 | Y1], [X4 | Y4]), mark_doubt([X4 | Y4], [X2 | Y2], [X3 | Y3], [X1 | Y1]).
+
+
+
 %% Marks neighbors as doubts, if more than one neighbor is a danger of the same kind
-mark_doubts :- 	agent_neighbors,
-				neighbor01(X1, Y1), neighbor02(X2, Y2),
-				neighbor03(X3, Y3), neighbor04(X4, Y4),
-				danger([X1 | Y1], D), (danger([X2 | Y2], D) ; danger([X3 | Y3], D) ; danger([X4 | Y4], D)),
-				checkDangerType(D, D1), \+doubt([X1 | Y1], D1), assert(doubt([X1 | Y1], D1)), retract(danger([X1 | Y1], D)),
-				((danger([X2 | Y2], D), \+doubt([X2 | Y2], D1), assert(doubt([X2 | Y2], D1)), retract(danger([X2 | Y2], D)) );
-				(danger([X3 | Y3], D), \+doubt([X3 | Y3], D1), assert(doubt([X3 | Y3], D1)), retract(danger([X3 | Y3], D)) );
-				(danger([X4 | Y4], D), \+doubt([X4 | Y4], D1), assert(doubt([X4 | Y4], D1)), retract(danger([X4 | Y4], D)) )).
-mark_doubts :- 	agent_neighbors,
-				neighbor01(X1, Y1), neighbor02(X2, Y2),
-				neighbor03(X3, Y3), neighbor04(X4, Y4),
-				danger([X2 | Y2], D), (danger([X1 | Y1], D) ; danger([X3 | Y3], D) ; danger([X4 | Y4], D)),
-				checkDangerType(D, D1), \+doubt([X2 | Y2], D1), assert(doubt([X2 | Y2], D1)), retract(danger([X2 | Y2], D)),
-				((danger([X1 | Y1], D), \+doubt([X1 | Y1], D1), assert(doubt([X1 | Y1], D1)), retract(danger([X1 | Y1], D)) );
-				(danger([X3 | Y3], D), \+doubt([X3 | Y3], D1), assert(doubt([X3 | Y3], D1)), retract(danger([X3 | Y3], D)) );
-				(danger([X4 | Y4], D), \+doubt([X4 | Y4], D1), assert(doubt([X4 | Y4], D1)), retract(danger([X4 | Y4], D)) )).
-mark_doubts :- 	agent_neighbors,
-				neighbor01(X1, Y1), neighbor02(X2, Y2),
-				neighbor03(X3, Y3), neighbor04(X4, Y4),
-				danger([X3 | Y3], D), (danger([X2 | Y2], D) ; danger([X1 | Y1], D) ; danger([X4 | Y4], D)),
-				checkDangerType(D, D1), \+doubt([X3 | Y3], D1), assert(doubt([X3 | Y3], D1)), retract(danger([X3 | Y3], D)),
-				((danger([X2 | Y2], D), \+doubt([X2 | Y2], D1), assert(doubt([X2 | Y2], D1)), retract(danger([X2 | Y2], D)) );
-				(danger([X1 | Y1], D), \+doubt([X1 | Y1], D1), assert(doubt([X1 | Y1], D1)), retract(danger([X1 | Y1], D)) );
-				(danger([X4 | Y4], D), \+doubt([X4 | Y4], D1), assert(doubt([X4 | Y4], D1)), retract(danger([X4 | Y4], D)) )).
-mark_doubts :- 	agent_neighbors,
-				neighbor01(X1, Y1), neighbor02(X2, Y2),
-				neighbor03(X3, Y3), neighbor04(X4, Y4),
-				danger([X4 | Y4], D), (danger([X2 | Y2], D) ; danger([X3 | Y3], D) ; danger([X1 | Y1], D)),
-				checkDangerType(D, D1), \+doubt([X4 | Y4], D1), assert(doubt([X4 | Y4], D1)), retract(danger([X4 | Y4], D1)),
-				((danger([X2 | Y2], D), \+doubt([X2 | Y2], D1), assert(doubt([X2 | Y2], D1)), retract(danger([X2 | Y2], D)) );
-				(danger([X3 | Y3], D), \+doubt([X3 | Y3], D1), assert(doubt([X3 | Y3], D1)), retract(danger([X3 | Y3], D)) );
-				(danger([X1 | Y1], D), \+doubt([X1 | Y1], D1),assert(doubt([X1 | Y1], D1)), retract(danger([X1 | Y1], D)) )).
+mark_doubt(P1, P2, P3, P4) :- 	danger(P1, D), (danger(P2, D) ; danger(P3, D) ; danger(P4, D)),
+								checkDangerType(D, D1), \+doubt(P1, D1), assert(doubt(P1, D1)), retract(danger(P1, D)),
+								((danger(P2, D), \+doubt(P2, D1), assert(doubt(P2, D1)), retract(danger(P2, D)) );
+								(danger(P3, D), \+doubt(P3, D1), assert(doubt(P3, D1)), retract(danger(P3, D)) );
+								(danger(P4, D), \+doubt(P4, D1), assert(doubt(P4, D1)), retract(danger(P4, D)) )); !.
 
 
 
@@ -436,7 +427,7 @@ updateLastShotLocation :-	samus([I | J], D,_,_,_),
 
 
 
-%% Rule to shoot, she doesn't shoot if she only has 2 bullets left (no worth loosing points if the chances of killing the monster are low)
+%% Rule to shoot
 shoot(S) :- samus(_,_,_,A,_), A >= 1, statusChange('A', 1), statusChange('S', -1), updateLastShotLocation, S = 'S'.
 
 

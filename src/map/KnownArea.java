@@ -15,14 +15,15 @@ public class KnownArea extends JPanel {
 
 	// TODO Dictionary for extra types:
 	// 'n' == unknown/unexplored zone
-	// 'p' == possible hole
-	// 'e' == possible Pirate (small enemy) or Metroid (big enemy)
-	// 'r' == possible Ridley (teleport)
+	// 'p' == possible hole (not represented in map)
+	// 'e' == possible Pirate (small enemy) or Metroid (big enemy) (not represented in map)
+	// 'r' == possible Ridley (teleport) (not represented in map)
 	// 'w' == unknown wall
+	// 'W' == known wall
 	// 't' == zone to visit
 	
 	private static Zone exploredMap[][] = null;
-	private Zone myZone;
+	private Zone myZone; // Samus zone
 	
 	private int zoneWidth, zoneHeight;
 	
@@ -66,6 +67,7 @@ public class KnownArea extends JPanel {
 		return exploredMap;
 	}
 
+	// Sets corners as known walls if neighbors are (she will never reach the corners)
 	private void updateCorners() {
 		
 		if(exploredMap[12][0].getType() == 'W' && exploredMap[13][1].getType() == 'W')
@@ -90,6 +92,7 @@ public class KnownArea extends JPanel {
 		
 		updateCorners();
 		
+		// Checking map info
 		for(i = 0; i < 14; i++) {
 			for(j = 0; j < 14; j++)
 				System.out.print(exploredMap[i][j].getType() + " ");
@@ -215,7 +218,7 @@ public class KnownArea extends JPanel {
 						}
 						g.drawImage(im, (int)xPos, (int)yPos, null);
 					}
-					else if(exploredMap[i][j].isTeleportEnemyDoubt()) {
+					if(exploredMap[i][j].isTeleportEnemyDoubt()) {
 						
 						try {
 							im = ImageIO.read(new File("img/possible_ridley.png"));

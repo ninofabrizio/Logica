@@ -29,9 +29,6 @@ public class Cave extends JPanel {
 	private static Zone caveMap[][] = new Zone[14][14];
 	private Zone samusZone;
 	
-	//private static ArrayList<Double> wolfZones = new ArrayList<Double>();
-	//public static Map<Character, Double> caveMapsCosts = new HashMap<Character, Double>();
-	
 	private int zoneWidth, zoneHeight;
 	
 	public Cave(int w, int h) {
